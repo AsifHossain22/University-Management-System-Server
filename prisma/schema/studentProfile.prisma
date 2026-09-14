@@ -1,0 +1,13 @@
+model StudentProfile {
+	id        String   @id @default(uuid())
+	userId    String   @unique
+	studentId String   @unique
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
+
+	user User @relation(fields: [userId], references: [id])
+
+	@@index([userId])
+	@@index([studentId])
+	@@map("student_profiles")
+}
