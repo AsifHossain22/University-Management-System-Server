@@ -4,9 +4,9 @@ import express, {
   type Response,
 } from 'express';
 import httpStatus from 'http-status';
-import { globalErrorHandler } from './app/utils/globalErrorHandler.ts';
 import { AuthRoutes } from './app/modules/auth/auth.route.ts';
 import { notFound } from './app/middlewares/notFound.ts';
+import { globalErrorHandler } from './app/utils/globalErrorHandler.ts';
 
 const app: Application = express();
 
