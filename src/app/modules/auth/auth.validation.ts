@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+// RegisterUserSchema
 const registerUserSchema = z.object({
   email: z.email(),
   password: z.string().min(8, 'Password must be at least 8 characters'),
@@ -8,6 +9,13 @@ const registerUserSchema = z.object({
   role: z.enum(['ADMIN', 'STUDENT', 'INSTRUCTOR']),
 });
 
+// LoginUserSchema
+const loginUserSchema = z.object({
+  email: z.email(),
+  password: z.string().min(1, 'Password is required'),
+});
+
 export const AuthValidation = {
   registerUserSchema,
+  loginUserSchema,
 };

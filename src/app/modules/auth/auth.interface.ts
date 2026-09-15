@@ -5,3 +5,8 @@ export interface IRegisterUser {
   lastName: string;
   role: 'ADMIN' | 'STUDENT' | 'INSTRUCTOR';
 }
+
+export interface ILoginUser {
+  email: string;
+  password: string;
+}
