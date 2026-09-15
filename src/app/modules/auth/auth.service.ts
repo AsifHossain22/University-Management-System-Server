@@ -1,10 +1,13 @@
 import bcrypt from 'bcryptjs';
-
-import config from '../../config/index.ts';
+import httpStatus from 'http-status';
 import { prisma } from '../../../lib/prisma.ts';
+import { AppError } from '../../utils/AppError.ts';
 import { jwtUtils } from '../../utils/jwt.ts';
-
-import type { ILoginUser, IRegisterUser } from './auth.interface.ts';
+import type {
+  IRefreshTokenPayload,
+  ILoginUser,
+  IRegisterUser,
+} from './auth.interface.ts';
 
 // RegisterUser
 const registerUser = async (payload: IRegisterUser) => {
@@ -16,7 +19,10 @@ const registerUser = async (payload: IRegisterUser) => {
 
   // CheckIfUserAlreadyExists
   if (existingUser) {
-    throw new Error('User already exists with this email!');
+    throw new AppError(
+      httpStatus.CONFLICT,
+      'User already exists with this email!',
+    );
   }
 
   // HashPassword
@@ -48,7 +54,14 @@ const loginUser = async (payload: ILoginUser) => {
   });
 
   if (!user) {
-    throw new Error('Invalid email or password!');
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid email or password!');
+  }
+
+  if (!user.isActive || user.deletedAt) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Your account is inactive. Please contact the Admin.',
+    );
   }
 
   const isPasswordMatched = await bcrypt.compare(
@@ -57,21 +70,25 @@ const loginUser = async (payload: ILoginUser) => {
   );
 
   if (!isPasswordMatched) {
-    throw new Error('Invalid email or password!');
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid email or password!');
   }
 
-  const accessToken = jwtUtils.createToken(
-    {
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-    },
-    config.jwt_access_secret,
-    config.jwt_access_expires_in,
-  );
+  // TokenPayload
+  const tokenPayload = {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+  };
+
+  // CreateAccessToken
+  const accessToken = jwtUtils.createAccessToken(tokenPayload);
+
+  // CreateRefreshToken
+  const refreshToken = jwtUtils.createRefreshToken(tokenPayload);
 
   return {
     accessToken,
+    refreshToken,
     user: {
       id: user.id,
       email: user.email,
@@ -83,7 +100,115 @@ const loginUser = async (payload: ILoginUser) => {
   };
 };
 
+// RefreshToken
+const refreshToken = async (payload: IRefreshTokenPayload) => {
+  const verifiedToken = jwtUtils.verifyRefreshToken(payload.refreshToken);
+
+  if (!verifiedToken.success) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      'Invalid or expired refresh token.',
+    );
+  }
+
+  const tokenPayload = verifiedToken.data;
+
+  if (
+    typeof tokenPayload !== 'object' ||
+    tokenPayload === null ||
+    !('userId' in tokenPayload) ||
+    !('email' in tokenPayload) ||
+    !('role' in tokenPayload)
+  ) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      'Invalid refresh token payload.',
+    );
+  }
+
+  const userId = tokenPayload.userId;
+  const email = tokenPayload.email;
+  const role = tokenPayload.role;
+
+  if (
+    typeof userId !== 'string' ||
+    typeof email !== 'string' ||
+    typeof role !== 'string'
+  ) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      'Invalid refresh token payload.',
+    );
+  }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+      email,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      'User not found. Please log in again.',
+    );
+  }
+
+  if (!user.isActive || user.deletedAt) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Your account is inactive. Please contact the Admin.',
+    );
+  }
+
+  if (user.role !== role) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Your account role is no longer valid.',
+    );
+  }
+
+  // CreateNewAccessToken
+  const newAccessToken = jwtUtils.createAccessToken({
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+  });
+
+  return {
+    accessToken: newAccessToken,
+  };
+};
+
+// GetMe
+const getMe = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    omit: {
+      passwordHash: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found!');
+  }
+
+  if (!user.isActive || user.deletedAt) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Your account is inactive. Please contact the Admin.',
+    );
+  }
+
+  return user;
+};
+
 export const AuthService = {
   registerUser,
   loginUser,
+  refreshToken,
+  getMe,
 };

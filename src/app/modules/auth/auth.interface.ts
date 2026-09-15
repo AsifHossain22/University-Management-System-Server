@@ -10,3 +10,7 @@ export interface ILoginUser {
   email: string;
   password: string;
 }
+
+export interface IRefreshTokenPayload {
+  refreshToken: string;
+}

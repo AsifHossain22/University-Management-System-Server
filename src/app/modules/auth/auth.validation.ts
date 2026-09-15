@@ -4,9 +4,9 @@ import { z } from 'zod';
 const registerUserSchema = z.object({
   email: z.email(),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  role: z.enum(['ADMIN', 'STUDENT', 'INSTRUCTOR']),
+  firstName: z.string().trim().min(1, 'First name is required'),
+  lastName: z.string().trim().min(1, 'Last name is required'),
+  role: z.literal('STUDENT'),
 });
 
 // LoginUserSchema
@@ -15,7 +15,13 @@ const loginUserSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+// RefreshTokenSchema
+const refreshTokenSchema = z.object({
+  refreshToken: z.string().min(1, 'Refresh token is required'),
+});
+
 export const AuthValidation = {
   registerUserSchema,
   loginUserSchema,
+  refreshTokenSchema,
 };

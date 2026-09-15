@@ -1,12 +1,17 @@
 import type { NextFunction, Request, Response } from 'express';
 import httpStatus from 'http-status';
-import type { JwtPayload } from 'jsonwebtoken';
+import { z } from 'zod';
 import type { UserRole } from '../../generated/prisma/enums.ts';
-import config from '../config/index.ts';
+import { prisma } from '../../lib/prisma.ts';
 import { AppError } from '../utils/AppError.ts';
 import { catchAsync } from '../utils/catchAsync.ts';
 import { jwtUtils } from '../utils/jwt.ts';
-import { prisma } from '../../lib/prisma.ts';
+
+const jwtPayloadSchema = z.object({
+  userId: z.string().min(1),
+  email: z.email(),
+  role: z.enum(['ADMIN', 'STUDENT', 'INSTRUCTOR']),
+});
 
 export interface RequestUser {
   email: string;
@@ -42,7 +47,7 @@ export const auth = (...requiredRoles: UserRole[]) => {
       );
     }
 
-    const verifiedToken = jwtUtils.verifyToken(token, config.jwt_access_secret);
+    const verifiedToken = jwtUtils.verifyAccessToken(token);
 
     if (!verifiedToken.success) {
       throw new AppError(
@@ -51,11 +56,13 @@ export const auth = (...requiredRoles: UserRole[]) => {
       );
     }
 
-    const { userId, email, role } = verifiedToken.data as JwtPayload;
+    const payloadResult = jwtPayloadSchema.safeParse(verifiedToken.data);
 
-    if (!userId || !email || !role) {
+    if (!payloadResult.success) {
       throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid access token.');
     }
+
+    const { userId, email, role } = payloadResult.data;
 
     if (requiredRoles.length > 0 && !requiredRoles.includes(role as UserRole)) {
       throw new AppError(
@@ -81,7 +88,7 @@ export const auth = (...requiredRoles: UserRole[]) => {
     if (!user.isActive || user.deletedAt) {
       throw new AppError(
         httpStatus.FORBIDDEN,
-        'Your account is inactive. Please contact the administrator.',
+        'Your account is inactive. Please contact the Admin.',
       );
     }
 

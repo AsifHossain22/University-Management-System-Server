@@ -1,14 +1,9 @@
 import type { NextFunction, Request, Response } from 'express';
-
 import httpStatus from 'http-status';
-
 import { Prisma } from '../../generated/prisma/client.ts';
-
 import config from '../config/index.ts';
-
-import { AppError } from '../utils/AppError.ts';
-
-export const globalErrorHandler = async (
+import { AppError } from './AppError.ts';
+export const globalErrorHandler = (
   err: unknown,
   req: Request,
   res: Response,
@@ -20,9 +15,12 @@ export const globalErrorHandler = async (
 
   let statusCode: number = httpStatus.INTERNAL_SERVER_ERROR;
   let errorMessage = 'Internal Server Error';
-  let errors: unknown[] = [];
+  const errors: unknown[] = [];
 
-  if (err instanceof Prisma.PrismaClientValidationError) {
+  if (err instanceof AppError) {
+    statusCode = err.statusCode;
+    errorMessage = err.message;
+  } else if (err instanceof Prisma.PrismaClientValidationError) {
     statusCode = httpStatus.BAD_REQUEST;
     errorMessage =
       'You have provided an incorrect field type or missing fields.';
@@ -39,19 +37,13 @@ export const globalErrorHandler = async (
         'An operation failed because the required record was not found.';
     }
   } else if (err instanceof Prisma.PrismaClientInitializationError) {
-    if (err.errorCode === 'P1000') {
-      statusCode = httpStatus.UNAUTHORIZED;
-      errorMessage = 'Authentication failed against the database server.';
-    } else if (err.errorCode === 'P1001') {
+    if (err.errorCode === 'P1000' || err.errorCode === 'P1001') {
       statusCode = httpStatus.SERVICE_UNAVAILABLE;
-      errorMessage = "Can't reach the database server.";
+      errorMessage = 'Database service is currently unavailable.';
     }
   } else if (err instanceof Prisma.PrismaClientUnknownRequestError) {
     statusCode = httpStatus.INTERNAL_SERVER_ERROR;
     errorMessage = 'Error occurred during query execution.';
-  } else if (err instanceof AppError) {
-    statusCode = err.statusCode;
-    errorMessage = err.message;
   } else if (err instanceof Error) {
     errorMessage = err.message;
   }

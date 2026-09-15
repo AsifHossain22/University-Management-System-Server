@@ -1,10 +1,10 @@
 import type { Request, Response } from 'express';
 import httpStatus from 'http-status';
-
+import { catchAsync } from '../../utils/catchAsync.ts';
 import { AuthService } from './auth.service.ts';
 
 // RegisterUser
-const registerUser = async (req: Request, res: Response) => {
+const registerUser = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthService.registerUser(req.body);
 
   res.status(httpStatus.CREATED).json({
@@ -12,10 +12,10 @@ const registerUser = async (req: Request, res: Response) => {
     message: 'User registered successfully!',
     data: result,
   });
-};
+});
 
 // LogInUser
-const loginUser = async (req: Request, res: Response) => {
+const loginUser = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthService.loginUser(req.body);
 
   res.status(httpStatus.OK).json({
@@ -23,9 +23,33 @@ const loginUser = async (req: Request, res: Response) => {
     message: 'User logged in successfully!',
     data: result,
   });
-};
+});
+
+// RefreshToken
+const refreshToken = catchAsync(async (req: Request, res: Response) => {
+  const result = await AuthService.refreshToken(req.body);
+
+  res.status(httpStatus.OK).json({
+    success: true,
+    message: 'Access token refreshed successfully!',
+    data: result,
+  });
+});
+
+// GetMe
+const getMe = catchAsync(async (req: Request, res: Response) => {
+  const result = await AuthService.getMe(req.user!.userId);
+
+  res.status(httpStatus.OK).json({
+    success: true,
+    message: 'User profile retrieved successfully!',
+    data: result,
+  });
+});
 
 export const AuthController = {
   registerUser,
   loginUser,
+  refreshToken,
+  getMe,
 };
