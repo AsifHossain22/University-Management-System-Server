@@ -36,10 +36,27 @@ const verifyEmailSchema = z.object({
     .regex(/^\d+$/, 'OTP must contain only digits'),
 });
 
+// ForgotPasswordSchema
+const forgotPasswordSchema = z.object({
+  email: z.email(),
+});
+
+// ResetPasswordSchema
+const resetPasswordSchema = z.object({
+  email: z.email(),
+  otp: z
+    .string({ error: 'OTP is required' })
+    .length(6, 'OTP must be exactly 6 digits')
+    .regex(/^\d+$/, 'OTP must contain only digits'),
+  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
 export const AuthValidation = {
   registerUserSchema,
   loginUserSchema,
   refreshTokenSchema,
   googleLoginSchema,
   verifyEmailSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 };

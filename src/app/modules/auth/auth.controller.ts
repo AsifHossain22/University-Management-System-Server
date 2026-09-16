@@ -25,6 +25,28 @@ const verifyEmail = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// ForgotPassword
+const forgotPassword = catchAsync(async (req: Request, res: Response) => {
+  const result = await AuthService.forgotPassword(req.body);
+
+  res.status(httpStatus.OK).json({
+    success: true,
+    message: 'Password reset OTP sent successfully!',
+    data: result,
+  });
+});
+
+// ResetPassword
+const resetPassword = catchAsync(async (req: Request, res: Response) => {
+  const result = await AuthService.resetPassword(req.body);
+  res.status(httpStatus.OK).json({
+    success: true,
+    message:
+      'Password reset successfully! Please log in with your new password.',
+    data: result,
+  });
+});
+
 // LogInUser
 const loginUser = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthService.loginUser(req.body);
@@ -76,4 +98,6 @@ export const AuthController = {
   refreshToken,
   googleLogin,
   getMe,
+  forgotPassword,
+  resetPassword,
 };

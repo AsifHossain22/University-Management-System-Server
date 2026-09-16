@@ -20,6 +20,20 @@ router.post(
   AuthController.verifyEmail,
 );
 
+// ForgotPassword
+router.post(
+  '/forgot-password',
+  validateRequest(AuthValidation.forgotPasswordSchema),
+  AuthController.forgotPassword,
+);
+
+// ResetPassword
+router.post(
+  '/reset-password',
+  validateRequest(AuthValidation.resetPasswordSchema),
+  AuthController.resetPassword,
+);
+
 // LogInUser
 router.post(
   '/login',

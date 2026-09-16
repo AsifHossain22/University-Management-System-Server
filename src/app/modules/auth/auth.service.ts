@@ -15,6 +15,8 @@ import type {
   IRefreshTokenPayload,
   ILoginUser,
   IVerifyEmailPayload,
+  IForgotPasswordPayload,
+  IResetPasswordPayload,
 } from './auth.interface.ts';
 import config from '../../config/index.ts';
 
@@ -217,6 +219,126 @@ const verifyEmail = async (payload: IVerifyEmailPayload) => {
     studentProfile: {
       studentId,
     },
+  };
+};
+
+// ForgotPassword
+const forgotPassword = async (payload: IForgotPasswordPayload) => {
+  const email = payload.email.trim().toLowerCase();
+
+  const user = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      'No account found with this email address.',
+    );
+  }
+
+  if (!user.isActive || user.deletedAt) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Your account is inactive. Please contact the administrator.',
+    );
+  }
+
+  const otp = crypto.randomInt(100000, 1000000).toString();
+
+  const otpKey = `forgot-password-otp:${email}`;
+
+  await redisClient.set(otpKey, otp, {
+    EX: 300,
+  });
+
+  const templatePath = path.join(
+    process.cwd(),
+    'src',
+    'app',
+    'templates',
+    'forgot-password-otp.ejs',
+  );
+
+  const html = await ejs.renderFile(templatePath, {
+    name: `${user.firstName} ${user.lastName}`,
+    otp,
+  });
+
+  await transporter.sendMail({
+    from: config.smtp_user,
+    to: email,
+    subject: 'Password Reset OTP',
+    html,
+  });
+
+  return {
+    email,
+    message: 'A password reset OTP has been sent to your email address.',
+  };
+};
+
+// ResetPassword
+const resetPassword = async (payload: IResetPasswordPayload) => {
+  const email = payload.email.trim().toLowerCase();
+
+  const otpKey = `forgot-password-otp:${email}`;
+
+  const storedOtp = await redisClient.get(otpKey);
+
+  if (!storedOtp) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'OTP has expired or does not exist. Please request a new OTP.',
+    );
+  }
+
+  if (storedOtp !== payload.otp) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Invalid OTP. Please provide the correct OTP.',
+    );
+  }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      'No account found with this email address.',
+    );
+  }
+
+  if (!user.isActive || user.deletedAt) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Your account is inactive. Please contact the Admin.',
+    );
+  }
+
+  const passwordHash = await bcrypt.hash(payload.newPassword, Number(10));
+
+  await prisma.user.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      passwordHash,
+    },
+  });
+
+  await redisClient.del(otpKey);
+
+  return {
+    email,
+    message:
+      'Password reset successfully! Please log in with your new password.',
   };
 };
 
@@ -474,4 +596,6 @@ export const AuthService = {
   refreshToken,
   getMe,
   googleLogin,
+  forgotPassword,
+  resetPassword,
 };
