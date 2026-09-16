@@ -27,9 +27,19 @@ const googleLoginSchema = z.object({
     .min(1, 'Google ID token is required'),
 });
 
+// VerifyEmailSchema
+const verifyEmailSchema = z.object({
+  email: z.email(),
+  otp: z
+    .string({ error: 'OTP is required' })
+    .length(6, 'OTP must be exactly 6 digits')
+    .regex(/^\d+$/, 'OTP must contain only digits'),
+});
+
 export const AuthValidation = {
   registerUserSchema,
   loginUserSchema,
   refreshTokenSchema,
   googleLoginSchema,
+  verifyEmailSchema,
 };

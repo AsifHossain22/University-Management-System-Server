@@ -9,7 +9,18 @@ const registerUser = catchAsync(async (req: Request, res: Response) => {
 
   res.status(httpStatus.CREATED).json({
     success: true,
-    message: 'User registered successfully!',
+    message: 'Registration initiated successfully!',
+    data: result,
+  });
+});
+
+// VerifyEmail
+const verifyEmail = catchAsync(async (req: Request, res: Response) => {
+  const result = await AuthService.verifyEmail(req.body);
+
+  res.status(httpStatus.OK).json({
+    success: true,
+    message: 'Email verified and account created successfully!',
     data: result,
   });
 });
@@ -60,6 +71,7 @@ const getMe = catchAsync(async (req: Request, res: Response) => {
 
 export const AuthController = {
   registerUser,
+  verifyEmail,
   loginUser,
   refreshToken,
   googleLogin,

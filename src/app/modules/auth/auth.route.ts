@@ -13,6 +13,13 @@ router.post(
   AuthController.registerUser,
 );
 
+// VerifyEmail
+router.post(
+  '/verify-email',
+  validateRequest(AuthValidation.verifyEmailSchema),
+  AuthController.verifyEmail,
+);
+
 // LogInUser
 router.post(
   '/login',

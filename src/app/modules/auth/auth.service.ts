@@ -1,25 +1,32 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import ejs from 'ejs';
 import httpStatus from 'http-status';
+import path from 'path';
 import { prisma } from '../../../lib/prisma.ts';
+import { redisClient } from '../../../lib/redis.ts';
+import { transporter } from '../../../lib/nodemailer.ts';
 import { AppError } from '../../utils/AppError.ts';
 import { jwtUtils } from '../../utils/jwt.ts';
+import { googleUtils } from '../../utils/google.ts';
 import type {
+  IRegisterUser,
   IGoogleLoginPayload,
   IRefreshTokenPayload,
   ILoginUser,
-  IRegisterUser,
+  IVerifyEmailPayload,
 } from './auth.interface.ts';
-import { googleUtils } from '../../utils/google.ts';
+import config from '../../config/index.ts';
 
 // RegisterUser
 const registerUser = async (payload: IRegisterUser) => {
-  const existingUser = await prisma.user.findUnique({
-    where: {
-      email: payload.email,
-    },
-  });
+  const email = payload.email.trim().toLowerCase();
 
   // CheckIfUserAlreadyExists
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+  });
+
   if (existingUser) {
     throw new AppError(
       httpStatus.CONFLICT,
@@ -30,21 +37,187 @@ const registerUser = async (payload: IRegisterUser) => {
   // HashPassword
   const passwordHash = await bcrypt.hash(payload.password, 12);
 
-  // CreateUser
-  const user = await prisma.user.create({
-    data: {
-      email: payload.email,
-      passwordHash,
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-      role: payload.role,
-    },
-    omit: {
-      passwordHash: true,
+  // GenerateOTP
+  const otp = crypto.randomInt(100000, 1000000).toString();
+
+  // RedisKeys
+  const otpKey = `student-registration-otp:${email}`;
+
+  // RegistrationDataKey
+  const registrationDataKey = `student-registration-data:${email}`;
+
+  // TemporaryRegistrationData
+  const registrationData = {
+    email,
+    passwordHash,
+    firstName: payload.firstName,
+    lastName: payload.lastName,
+    role: payload.role,
+  };
+
+  // StoreOTPInRedis
+  await redisClient.set(otpKey, otp, {
+    EX: 300, // 5 min
+  });
+
+  // StoreRegistrationDataInRedis
+  await redisClient.set(registrationDataKey, JSON.stringify(registrationData), {
+    EX: 300, // 5 min
+  });
+
+  // RenderVerificationEmail
+  const templatePath = path.join(
+    process.cwd(),
+    'src',
+    'app',
+    'templates',
+    'registration-user-otp.ejs',
+  );
+
+  const emailHtml = await ejs.renderFile(templatePath, {
+    name: `${payload.firstName} ${payload.lastName}`,
+    otp,
+  });
+
+  // SendVerificationEmail
+  await transporter.sendMail({
+    from: config.smtp_user,
+    to: email,
+    subject: 'University Management System - Verify Your Email',
+    html: emailHtml,
+  });
+
+  return {
+    email,
+    message: 'A verification OTP has been sent to your email address.',
+  };
+};
+
+// VerifyEmail
+const verifyEmail = async (payload: IVerifyEmailPayload) => {
+  // NormalizeEmail
+  const email = payload.email.trim().toLowerCase();
+
+  // RedisKeys
+  const otpKey = `student-registration-otp:${email}`;
+
+  const registrationDataKey = `student-registration-data:${email}`;
+
+  // GetOTPFromRedis
+  const storedOtp = await redisClient.get(otpKey);
+
+  if (!storedOtp) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'OTP is invalid or has expired.',
+    );
+  }
+
+  // VerifyOTP
+  if (storedOtp !== payload.otp) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Invalid OTP. Please provide the correct OTP.',
+    );
+  }
+
+  // GetRegistrationDataFromRedis
+  const registrationDataString = await redisClient.get(registrationDataKey);
+
+  if (!registrationDataString) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Registration session has expired. Please register again.',
+    );
+  }
+
+  // ParseRegistrationData
+  let registrationData: IRegisterUser & {
+    passwordHash: string;
+  };
+
+  try {
+    registrationData = JSON.parse(registrationDataString);
+  } catch {
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'Unable to process registration data.',
+    );
+  }
+
+  // CheckExistingUser
+  const existingUser = await prisma.user.findUnique({
+    where: {
+      email,
     },
   });
 
-  return user;
+  if (existingUser) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      'User already exists with this email!',
+    );
+  }
+
+  // GenerateStudentId
+  const studentId = `STU-${Date.now()}-${crypto
+    .randomInt(1000, 10000)
+    .toString()}`;
+
+  // CreateUserAndStudentProfile
+  const user = await prisma.$transaction(async transaction => {
+    const createdUser = await transaction.user.create({
+      data: {
+        email: registrationData.email,
+        passwordHash: registrationData.passwordHash,
+        firstName: registrationData.firstName,
+        lastName: registrationData.lastName,
+        role: registrationData.role,
+      },
+    });
+
+    await transaction.studentProfile.create({
+      data: {
+        userId: createdUser.id,
+        studentId,
+      },
+    });
+
+    return createdUser;
+  });
+
+  // DeleteRegistrationDataFromRedis
+  await redisClient.del(otpKey);
+  await redisClient.del(registrationDataKey);
+
+  // TokenPayload
+  const tokenPayload = {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+  };
+
+  // CreateAccessToken
+  const accessToken = jwtUtils.createAccessToken(tokenPayload);
+
+  // CreateRefreshToken
+  const refreshToken = jwtUtils.createRefreshToken(tokenPayload);
+
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      isActive: user.isActive,
+    },
+    studentProfile: {
+      studentId,
+    },
+  };
 };
 
 // LogInUser
@@ -55,6 +228,7 @@ const loginUser = async (payload: ILoginUser) => {
     },
   });
 
+  // ValidateUserExistence
   if (!user) {
     throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid email or password!');
   }
@@ -221,6 +395,7 @@ const googleLogin = async (payload: IGoogleLoginPayload) => {
     );
   }
 
+  // VerifyGoogleEmail
   if (googlePayload.email_verified !== true) {
     throw new AppError(
       httpStatus.UNAUTHORIZED,
@@ -294,6 +469,7 @@ const googleLogin = async (payload: IGoogleLoginPayload) => {
 
 export const AuthService = {
   registerUser,
+  verifyEmail,
   loginUser,
   refreshToken,
   getMe,

@@ -1,3 +1,4 @@
+// RegisterUser
 export interface IRegisterUser {
   email: string;
   password: string;
@@ -6,15 +7,24 @@ export interface IRegisterUser {
   role: 'ADMIN' | 'STUDENT' | 'INSTRUCTOR';
 }
 
+// LogInUser
 export interface ILoginUser {
   email: string;
   password: string;
 }
 
+// RefreshToken
 export interface IRefreshTokenPayload {
   refreshToken: string;
 }
 
+// GoogleLogin
 export interface IGoogleLoginPayload {
   idToken: string;
+}
+
+// VerifyEmail
+export interface IVerifyEmailPayload {
+  email: string;
+  otp: string;
 }
