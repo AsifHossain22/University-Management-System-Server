@@ -4,10 +4,12 @@ import { prisma } from '../../../lib/prisma.ts';
 import { AppError } from '../../utils/AppError.ts';
 import { jwtUtils } from '../../utils/jwt.ts';
 import type {
+  IGoogleLoginPayload,
   IRefreshTokenPayload,
   ILoginUser,
   IRegisterUser,
 } from './auth.interface.ts';
+import { googleUtils } from '../../utils/google.ts';
 
 // RegisterUser
 const registerUser = async (payload: IRegisterUser) => {
@@ -206,9 +208,94 @@ const getMe = async (userId: string) => {
   return user;
 };
 
+// GoogleLogin
+const googleLogin = async (payload: IGoogleLoginPayload) => {
+  // VerifyGoogleIdToken
+  const googlePayload = await googleUtils.verifyGoogleIdToken(payload.idToken);
+
+  // ValidateGoogleEmail
+  if (!googlePayload.email) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      'Google account email was not found!',
+    );
+  }
+
+  if (googlePayload.email_verified !== true) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      'Google account email is not verified!',
+    );
+  }
+
+  const email = googlePayload.email;
+
+  // FindExistingUser
+  const existingUser = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+
+  // ValidateExistingUser
+  if (existingUser) {
+    if (!existingUser.isActive || existingUser.deletedAt) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        'Your account is inactive. Please contact the Admin.',
+      );
+    }
+  }
+
+  let user = existingUser;
+
+  // CreateGoogleUser
+  if (!user) {
+    const firstName = googlePayload.given_name ?? 'Google';
+    const lastName = googlePayload.family_name ?? 'User';
+
+    user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: null,
+        firstName,
+        lastName,
+        role: 'STUDENT',
+      },
+    });
+  }
+
+  // TokenPayload
+  const tokenPayload = {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+  };
+
+  // CreateAccessToken
+  const accessToken = jwtUtils.createAccessToken(tokenPayload);
+
+  // CreateRefreshToken
+  const refreshToken = jwtUtils.createRefreshToken(tokenPayload);
+
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      isActive: user.isActive,
+    },
+  };
+};
+
 export const AuthService = {
   registerUser,
   loginUser,
   refreshToken,
   getMe,
+  googleLogin,
 };

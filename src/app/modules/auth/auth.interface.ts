@@ -14,3 +14,7 @@ export interface ILoginUser {
 export interface IRefreshTokenPayload {
   refreshToken: string;
 }
+
+export interface IGoogleLoginPayload {
+  idToken: string;
+}

@@ -14,4 +14,5 @@ export default {
   jwt_refresh_secret: process.env.JWT_REFRESH_SECRET!,
   jwt_refresh_expires_in: process.env
     .JWT_REFRESH_EXPIRES_IN! as SignOptions['expiresIn'],
+  google_client_id: process.env.GOOGLE_CLIENT_ID!,
 };

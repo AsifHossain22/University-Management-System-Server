@@ -36,6 +36,17 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// GoogleLogin
+const googleLogin = catchAsync(async (req: Request, res: Response) => {
+  const result = await AuthService.googleLogin(req.body);
+
+  res.status(httpStatus.OK).json({
+    success: true,
+    message: 'Google login successful!',
+    data: result,
+  });
+});
+
 // GetMe
 const getMe = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthService.getMe(req.user!.userId);
@@ -51,5 +62,6 @@ export const AuthController = {
   registerUser,
   loginUser,
   refreshToken,
+  googleLogin,
   getMe,
 };

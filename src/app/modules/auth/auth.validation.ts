@@ -20,8 +20,16 @@ const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token is required'),
 });
 
+// GoogleLoginSchema
+const googleLoginSchema = z.object({
+  idToken: z
+    .string({ error: 'Google ID token is required' })
+    .min(1, 'Google ID token is required'),
+});
+
 export const AuthValidation = {
   registerUserSchema,
   loginUserSchema,
   refreshTokenSchema,
+  googleLoginSchema,
 };

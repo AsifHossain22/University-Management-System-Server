@@ -27,6 +27,13 @@ router.post(
   AuthController.refreshToken,
 );
 
+// GoogleLogin
+router.post(
+  '/google',
+  validateRequest(AuthValidation.googleLoginSchema),
+  AuthController.googleLogin,
+);
+
 // GetMe
 router.get('/me', auth(), AuthController.getMe);
 
