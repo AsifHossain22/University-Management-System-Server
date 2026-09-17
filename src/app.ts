@@ -3,12 +3,16 @@ import express, {
   type Request,
   type Response,
 } from 'express';
+import helmet from 'helmet';
 import httpStatus from 'http-status';
 import { AuthRoutes } from './app/modules/auth/auth.route.ts';
 import { notFound } from './app/middlewares/notFound.ts';
 import { globalErrorHandler } from './app/utils/globalErrorHandler.ts';
 
 const app: Application = express();
+
+// SecurityHeaders
+app.use(helmet());
 
 // ParseURLEncodedFormData
 app.use(express.urlencoded({ extended: true }));
