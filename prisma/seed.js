@@ -29,7 +29,7 @@ const seedAdmin = async () => {
         update: {
             passwordHash,
             role: 'ADMIN',
-            firstName: 'University Management System',
+            firstName: 'System',
             lastName: 'Admin',
             isActive: true,
             deletedAt: null,
@@ -38,7 +38,7 @@ const seedAdmin = async () => {
             email: adminEmail,
             passwordHash,
             role: 'ADMIN',
-            firstName: 'University Management System',
+            firstName: 'System',
             lastName: 'Admin',
         },
     });

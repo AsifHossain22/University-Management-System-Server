@@ -1,42 +1,42 @@
 // RegisterUser
 export interface IRegisterUser {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  role: 'ADMIN' | 'STUDENT' | 'INSTRUCTOR';
+	email: string;
+	password: string;
+	firstName: string;
+	lastName: string;
+	role: "ADMIN" | "STUDENT" | "INSTRUCTOR";
 }
 
 // LogInUser
 export interface ILoginUser {
-  email: string;
-  password: string;
+	email: string;
+	password: string;
 }
 
 // RefreshToken
 export interface IRefreshTokenPayload {
-  refreshToken: string;
+	refreshToken: string;
 }
 
 // GoogleLogin
 export interface IGoogleLoginPayload {
-  idToken: string;
+	idToken: string;
 }
 
 // VerifyEmail
 export interface IVerifyEmailPayload {
-  email: string;
-  otp: string;
+	email: string;
+	otp: string;
 }
 
 // ForgotPassword
 export interface IForgotPasswordPayload {
-  email: string;
+	email: string;
 }
 
 // ResetPassword
 export interface IResetPasswordPayload {
-  email: string;
-  otp: string;
-  newPassword: string;
+	email: string;
+	otp: string;
+	newPassword: string;
 }

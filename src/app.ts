@@ -1,16 +1,17 @@
 import express, {
-  type Application,
-  type Request,
-  type Response,
-} from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import httpStatus from 'http-status';
-import config from './app/config/index.ts';
-import { AuthRoutes } from './app/modules/auth/auth.route.ts';
-import { ExamRoutes } from './app/modules/exam/exam.route.ts';
-import { notFound } from './app/middlewares/notFound.ts';
-import { globalErrorHandler } from './app/utils/globalErrorHandler.ts';
+	type Application,
+	type Request,
+	type Response,
+} from "express";
+import cors from "cors";
+import helmet from "helmet";
+import httpStatus from "http-status";
+import config from "./app/config/index.ts";
+import { AuthRoutes } from "./app/modules/auth/auth.route.ts";
+import { ExamRoutes } from "./app/modules/exam/exam.route.ts";
+import { notFound } from "./app/middlewares/notFound.ts";
+import { globalErrorHandler } from "./app/utils/globalErrorHandler.ts";
+import { DepartmentRoutes } from "./app/modules/department/department.route.ts";
 
 const app: Application = express();
 
@@ -19,9 +20,9 @@ app.use(helmet());
 
 // CORS
 app.use(
-  cors({
-    origin: config.client_url,
-  }),
+	cors({
+		origin: config.client_url,
+	}),
 );
 
 // ParseURLEncodedFormData
@@ -31,18 +32,21 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // AuthRoutes
-app.use('/api/v1/auth', AuthRoutes);
+app.use("/api/v1/auth", AuthRoutes);
 
 // ExamRoutes
-app.use('/api/v1/exams', ExamRoutes);
+app.use("/api/v1/exams", ExamRoutes);
+
+// DepartmentRoutes
+app.use("/api/v1/departments", DepartmentRoutes);
 
 // WelcomeRoute
-app.get('/', (req: Request, res: Response) => {
-  res.status(httpStatus.OK).json({
-    success: true,
-    message: 'Welcome to University Management System Server!',
-    data: null,
-  });
+app.get("/", (req: Request, res: Response) => {
+	res.status(httpStatus.OK).json({
+		success: true,
+		message: "Welcome to University Management System Server!",
+		data: null,
+	});
 });
 
 // GlobalErrorHandler
