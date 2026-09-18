@@ -8,6 +8,7 @@ import helmet from 'helmet';
 import httpStatus from 'http-status';
 import config from './app/config/index.ts';
 import { AuthRoutes } from './app/modules/auth/auth.route.ts';
+import { ExamRoutes } from './app/modules/exam/exam.route.ts';
 import { notFound } from './app/middlewares/notFound.ts';
 import { globalErrorHandler } from './app/utils/globalErrorHandler.ts';
 
@@ -31,6 +32,9 @@ app.use(express.json());
 
 // AuthRoutes
 app.use('/api/v1/auth', AuthRoutes);
+
+// ExamRoutes
+app.use('/api/v1/exams', ExamRoutes);
 
 // WelcomeRoute
 app.get('/', (req: Request, res: Response) => {
