@@ -1,0 +1,18 @@
+model Attendance {
+  id             String           @id @default(uuid())
+  registrationId String
+  date           DateTime
+  status         AttendanceStatus
+  remarks        String?
+  markedAt       DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  registration CourseRegistration @relation(fields: [registrationId], references: [id])
+
+  @@unique([registrationId, date])
+  @@index([registrationId])
+  @@index([date])
+  @@index([status])
+  @@map("attendances")
+}

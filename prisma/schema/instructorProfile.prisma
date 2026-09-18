@@ -7,6 +7,8 @@ model InstructorProfile {
 
   user User @relation(fields: [userId], references: [id])
 
+  sections Section[]
+
   @@index([userId])
   @@index([instructorId])
   @@map("instructor_profiles")

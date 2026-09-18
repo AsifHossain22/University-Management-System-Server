@@ -1,0 +1,27 @@
+model Section {
+  id           String    @id @default(uuid())
+  name         String
+  code         String
+  courseId     String
+  semesterId   String
+  instructorId String
+  capacity     Int
+  isActive     Boolean   @default(true)
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  course        Course               @relation(fields: [courseId], references: [id])
+  semester      Semester             @relation(fields: [semesterId], references: [id])
+  instructor    InstructorProfile    @relation(fields: [instructorId], references: [id])
+  registrations CourseRegistration[]
+  exams         Exam[]
+
+  @@unique([code, semesterId])
+  @@index([courseId])
+  @@index([semesterId])
+  @@index([instructorId])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("sections")
+}

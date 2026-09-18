@@ -9,6 +9,7 @@ model Department {
   updatedAt   DateTime  @updatedAt
 
   programs Program[]
+  courses  Course[]
 
   @@index([isActive])
   @@index([deletedAt])

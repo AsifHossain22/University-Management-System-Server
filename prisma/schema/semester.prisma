@@ -1,0 +1,19 @@
+model Semester {
+  id        String    @id @default(uuid())
+  name      String
+  code      String    @unique
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  sections Section[]
+
+  @@index([isActive])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([deletedAt])
+  @@map("semesters")
+}

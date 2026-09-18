@@ -1,0 +1,17 @@
+model Result {
+  id             String   @id @default(uuid())
+  registrationId String
+  examId         String
+  obtainedMarks  Float
+  remarks        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  registration CourseRegistration @relation(fields: [registrationId], references: [id])
+  exam         Exam               @relation(fields: [examId], references: [id])
+
+  @@unique([registrationId, examId])
+  @@index([registrationId])
+  @@index([examId])
+  @@map("results")
+}

@@ -3,3 +3,25 @@ enum UserRole {
   STUDENT
   INSTRUCTOR
 }
+
+enum RegistrationStatus {
+  REGISTERED
+  DROPPED
+  COMPLETED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum ExamType {
+  MIDTERM
+  FINAL
+  QUIZ
+  ASSIGNMENT
+  PRESENTATION
+}

@@ -1,0 +1,17 @@
+model CourseGrade {
+  id             String    @id @default(uuid())
+  registrationId String    @unique
+  finalMarks     Float
+  grade          String
+  gradePoint     Float
+  isPassed       Boolean
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  registration CourseRegistration @relation(fields: [registrationId], references: [id])
+
+  @@index([grade])
+  @@index([isPassed])
+  @@map("course_grades")
+}
