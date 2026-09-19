@@ -15,6 +15,7 @@ import { DepartmentRoutes } from "./app/modules/department/department.route.ts";
 import { ProgramRoutes } from "./app/modules/program/program.route.ts";
 import { CourseRoutes } from "./app/modules/course/course.route.ts";
 import { SemesterRoutes } from "./app/modules/semester/semester.route.ts";
+import { CoursePrerequisiteRoutes } from "./app/modules/course-prerequisite/course-prerequisite.route.ts";
 
 const app: Application = express();
 
@@ -51,6 +52,9 @@ app.use("/api/v1/courses", CourseRoutes);
 
 // SemesterRoutes
 app.use("/api/v1/semesters", SemesterRoutes);
+
+// CoursePrerequisiteRoutes
+app.use("/api/v1/course-prerequisites", CoursePrerequisiteRoutes);
 
 // WelcomeRoute
 app.get("/", (req: Request, res: Response) => {
