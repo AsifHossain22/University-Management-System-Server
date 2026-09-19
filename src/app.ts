@@ -12,6 +12,7 @@ import { ExamRoutes } from "./app/modules/exam/exam.route.ts";
 import { notFound } from "./app/middlewares/notFound.ts";
 import { globalErrorHandler } from "./app/utils/globalErrorHandler.ts";
 import { DepartmentRoutes } from "./app/modules/department/department.route.ts";
+import { ProgramRoutes } from "./app/modules/program/program.route.ts";
 
 const app: Application = express();
 
@@ -39,6 +40,9 @@ app.use("/api/v1/exams", ExamRoutes);
 
 // DepartmentRoutes
 app.use("/api/v1/departments", DepartmentRoutes);
+
+// ProgramRoutes
+app.use("/api/v1/programs", ProgramRoutes);
 
 // WelcomeRoute
 app.get("/", (req: Request, res: Response) => {
