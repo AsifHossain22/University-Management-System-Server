@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
 import { Prisma } from "../../generated/prisma/client.ts";
+import { ZodError } from "zod";
 import config from "../config/index.ts";
 import { AppError } from "./AppError.ts";
 
@@ -19,7 +20,17 @@ export const globalErrorHandler = (
 
 	const errors: unknown[] = [];
 
-	if (err instanceof AppError) {
+	if (err instanceof ZodError) {
+		statusCode = httpStatus.BAD_REQUEST;
+		errorMessage = "Validation failed";
+
+		errors.push(
+			...err.issues.map((issue) => ({
+				path: issue.path,
+				message: issue.message,
+			})),
+		);
+	} else if (err instanceof AppError) {
 		statusCode = err.statusCode;
 		errorMessage = err.message;
 	} else if (err instanceof Prisma.PrismaClientValidationError) {
