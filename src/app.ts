@@ -13,6 +13,7 @@ import { notFound } from "./app/middlewares/notFound.ts";
 import { globalErrorHandler } from "./app/utils/globalErrorHandler.ts";
 import { DepartmentRoutes } from "./app/modules/department/department.route.ts";
 import { ProgramRoutes } from "./app/modules/program/program.route.ts";
+import { CourseRoutes } from "./app/modules/course/course.route.ts";
 
 const app: Application = express();
 
@@ -43,6 +44,9 @@ app.use("/api/v1/departments", DepartmentRoutes);
 
 // ProgramRoutes
 app.use("/api/v1/programs", ProgramRoutes);
+
+// CourseRoutes
+app.use("/api/v1/courses", CourseRoutes);
 
 // WelcomeRoute
 app.get("/", (req: Request, res: Response) => {
