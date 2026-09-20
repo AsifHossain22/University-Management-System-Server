@@ -21,6 +21,7 @@ import { InstructorRoutes } from './app/modules/instructor/instructor.route.ts';
 import { CourseRegistrationRoutes } from './app/modules/course-registration/course-registration.route.ts';
 import { StudentRoutes } from './app/modules/student/student.route.ts';
 import { SectionRoutes } from './app/modules/section/section.route.ts';
+import { AttendanceRoutes } from './app/modules/attendance/attendance.route.ts';
 
 const app: Application = express();
 
@@ -75,6 +76,9 @@ app.use('/api/v1/course-registrations', CourseRegistrationRoutes);
 
 // StudentRoutes
 app.use('/api/v1/students', StudentRoutes);
+
+// AttendanceRoutes
+app.use('/api/v1/attendances', AttendanceRoutes);
 
 // WelcomeRoute
 app.get('/', (req: Request, res: Response) => {
