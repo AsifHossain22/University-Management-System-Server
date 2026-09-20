@@ -1,0 +1,36 @@
+model InstructorApplication {
+  id              String  @id @default(uuid())
+  email           String
+  passwordHash    String?
+  firstName       String
+  lastName        String
+  specialization  String
+  qualification   String
+  experienceYears Int
+  bio             String?
+  departmentId    String?
+
+  emailVerifiedAt DateTime?
+  status          InstructorApplicationStatus @default(PENDING)
+
+  rejectionReason String?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+
+  userId String? @unique
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  department Department? @relation(fields: [departmentId], references: [id])
+  user       User?       @relation(fields: [userId], references: [id])
+
+  @@index([email])
+  @@index([status])
+  @@index([departmentId])
+  @@index([emailVerifiedAt])
+  @@index([reviewedBy])
+  @@index([deletedAt])
+  @@map("instructor_applications")
+}

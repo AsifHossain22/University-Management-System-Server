@@ -10,8 +10,9 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  studentProfile    StudentProfile?
-  instructorProfile InstructorProfile?
+  studentProfile        StudentProfile?
+  instructorProfile     InstructorProfile?
+  instructorApplication InstructorApplication?
 
   @@index([role])
   @@index([isActive])

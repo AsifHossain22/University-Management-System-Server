@@ -25,3 +25,9 @@ enum ExamType {
   ASSIGNMENT
   PRESENTATION
 }
+
+enum InstructorApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

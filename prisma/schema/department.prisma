@@ -8,8 +8,9 @@ model Department {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  programs Program[]
-  courses  Course[]
+  programs               Program[]
+  courses                Course[]
+  instructorApplications InstructorApplication[]
 
   @@index([isActive])
   @@index([deletedAt])
