@@ -17,6 +17,7 @@ import { CourseRoutes } from './app/modules/course/course.route.ts';
 import { SemesterRoutes } from './app/modules/semester/semester.route.ts';
 import { CoursePrerequisiteRoutes } from './app/modules/course-prerequisite/course-prerequisite.route.ts';
 import { InstructorApplicationRoutes } from './app/modules/instructor-application/instructor-application.route.ts';
+import { InstructorRoutes } from './app/modules/instructor/instructor.route.ts';
 
 const app: Application = express();
 
@@ -59,6 +60,9 @@ app.use('/api/v1/course-prerequisites', CoursePrerequisiteRoutes);
 
 // InstructorApplicationRoutes
 app.use('/api/v1/instructor-applications', InstructorApplicationRoutes);
+
+// InstructorsRoutes
+app.use('/api/v1/instructors', InstructorRoutes);
 
 // WelcomeRoute
 app.get('/', (req: Request, res: Response) => {

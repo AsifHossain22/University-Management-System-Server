@@ -7,13 +7,14 @@ const fileFilter: multer.Options['fileFilter'] = (req, file, callback) => {
     'image/jpeg',
     'image/jpg',
     'image/png',
+    'image/svg+xml',
     'image/webp',
   ];
 
   if (!allowedMimeTypes.includes(file.mimetype)) {
     callback(
       new Error(
-        'Invalid file type! Only JPEG, JPG, PNG and WebP images are allowed.',
+        'Invalid file type! Only JPEG, JPG, PNG, SVG and WebP images are allowed.',
       ),
     );
     return;
