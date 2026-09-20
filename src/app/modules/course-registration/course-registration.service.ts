@@ -2,8 +2,12 @@ import httpStatus from 'http-status';
 import { Prisma } from '../../../generated/prisma/client.ts';
 import { prisma } from '../../../lib/prisma.ts';
 import { AppError } from '../../utils/AppError.ts';
-import type { CreateCourseRegistrationInput } from './course-registration.validation.ts';
+import type {
+  CourseRegistrationQueryInput,
+  CreateCourseRegistrationInput,
+} from './course-registration.validation.ts';
 
+// RegisterCourse
 const registerCourse = async (
   userId: string,
   payload: CreateCourseRegistrationInput,
@@ -259,10 +263,11 @@ const registerCourse = async (
         },
         {
           isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          timeout: 15000,
+          maxWait: 5000,
         },
       );
     } catch (error) {
-      // RetryFewTimesInsteadOfImmediatelyFailing
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2034' &&
@@ -277,10 +282,234 @@ const registerCourse = async (
 
   throw new AppError(
     httpStatus.CONFLICT,
-    'Course registration could not be completed because of concurrent registration activity. Please try again!',
+    'Course registration could not be completed because of concurrent registration activity. Please try again.',
   );
+};
+
+// GetMyRegistrations
+const getMyRegistrations = async (
+  userId: string,
+  query: CourseRegistrationQueryInput,
+) => {
+  const student = await prisma.studentProfile.findUnique({
+    where: {
+      userId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!student) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Student profile not found!');
+  }
+
+  const { page, limit, status, searchTerm } = query;
+
+  const skip = (page - 1) * limit;
+
+  const where: Prisma.CourseRegistrationWhereInput = {
+    studentId: student.id,
+
+    ...(status && {
+      status,
+    }),
+
+    ...(searchTerm && {
+      section: {
+        OR: [
+          {
+            name: {
+              contains: searchTerm,
+              mode: 'insensitive',
+            },
+          },
+          {
+            code: {
+              contains: searchTerm,
+              mode: 'insensitive',
+            },
+          },
+          {
+            course: {
+              name: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+          },
+          {
+            course: {
+              code: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+          },
+        ],
+      },
+    }),
+  };
+
+  const [registrations, total] = await prisma.$transaction([
+    prisma.courseRegistration.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: {
+        registeredAt: 'desc',
+      },
+      select: {
+        id: true,
+        status: true,
+        registeredAt: true,
+        droppedAt: true,
+        section: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            capacity: true,
+            course: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                credits: true,
+              },
+            },
+            semester: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                startDate: true,
+                endDate: true,
+              },
+            },
+            instructor: {
+              select: {
+                instructorId: true,
+                user: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    }),
+
+    prisma.courseRegistration.count({
+      where,
+    }),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages,
+    },
+    data: registrations,
+  };
+};
+
+// DropCourse
+const dropCourse = async (userId: string, registrationId: string) => {
+  const student = await prisma.studentProfile.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+
+  if (!student) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Student profile not found!');
+  }
+
+  const registration = await prisma.courseRegistration.findUnique({
+    where: { id: registrationId },
+    select: {
+      id: true,
+      studentId: true,
+      status: true,
+      section: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          course: {
+            select: {
+              name: true,
+              code: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!registration) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Course registration not found!');
+  }
+
+  if (registration.studentId !== student.id) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'You do not have permission to drop this course registration!',
+    );
+  }
+
+  if (registration.status !== 'REGISTERED') {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `This course registration cannot be dropped because its current status is ${registration.status}.`,
+    );
+  }
+
+  const result = await prisma.$transaction(async tx => {
+    const updatedRegistration = await tx.courseRegistration.update({
+      where: {
+        id: registration.id,
+      },
+      data: {
+        status: 'DROPPED',
+        droppedAt: new Date(),
+      },
+      select: {
+        id: true,
+        status: true,
+        registeredAt: true,
+        droppedAt: true,
+        section: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            course: {
+              select: {
+                name: true,
+                code: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return updatedRegistration;
+  });
+
+  return result;
 };
 
 export const CourseRegistrationService = {
   registerCourse,
+  getMyRegistrations,
+  dropCourse,
 };

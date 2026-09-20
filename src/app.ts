@@ -20,6 +20,7 @@ import { InstructorApplicationRoutes } from './app/modules/instructor-applicatio
 import { InstructorRoutes } from './app/modules/instructor/instructor.route.ts';
 import { CourseRegistrationRoutes } from './app/modules/course-registration/course-registration.route.ts';
 import { StudentRoutes } from './app/modules/student/student.route.ts';
+import { SectionRoutes } from './app/modules/section/section.route.ts';
 
 const app: Application = express();
 
@@ -59,6 +60,9 @@ app.use('/api/v1/semesters', SemesterRoutes);
 
 // CoursePrerequisiteRoutes
 app.use('/api/v1/course-prerequisites', CoursePrerequisiteRoutes);
+
+// SectionRoutes
+app.use('/api/v1/sections', SectionRoutes);
 
 // InstructorApplicationRoutes
 app.use('/api/v1/instructor-applications', InstructorApplicationRoutes);

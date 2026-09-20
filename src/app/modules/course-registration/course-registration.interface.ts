@@ -8,7 +8,3 @@ export interface ICourseRegistrationQuery {
   status?: 'REGISTERED' | 'DROPPED' | 'COMPLETED' | 'CANCELLED';
   searchTerm?: string;
 }
-
-export interface IDropCourseRegistrationPayload {
-  registrationId: string;
-}
