@@ -182,6 +182,7 @@ const verifyEmail = async (payload: IVerifyEmailPayload) => {
       data: {
         userId: createdUser.id,
         studentId,
+        studentEmail: createdUser.email,
       },
     });
 
@@ -570,6 +571,7 @@ const googleLogin = async (payload: IGoogleLoginPayload) => {
         data: {
           userId: createdUser.id,
           studentId,
+          studentEmail: createdUser.email,
         },
       });
 

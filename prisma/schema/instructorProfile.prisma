@@ -1,26 +1,28 @@
 model InstructorProfile {
-  id           String @id @default(uuid())
-  userId       String @unique
-  instructorId String @unique
+	id           String   @id @default(uuid())
+	userId       String   @unique
+	instructorId String   @unique
 
-  profileImageUrl      String?
-  profileImagePublicId String?
+	instructorEmail      String   @unique
+	profileImageUrl      String?
+	profileImagePublicId String?
 
-  specialization  String?
-  qualification   String?
-  experienceYears Int?
-  bio             String?
-  phone           String?
-  address         String?
+	specialization  String?
+	qualification   String?
+	experienceYears Int?
+	bio             String?
+	phone           String?
+	address         String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id])
-  sections Section[]
+	user     User      @relation(fields: [userId], references: [id])
+	sections Section[]
 
-  @@index([userId])
-  @@index([instructorId])
-  @@index([specialization])
-  @@map("instructor_profiles")
+	@@index([userId])
+	@@index([instructorId])
+	@@index([instructorEmail])
+	@@index([specialization])
+	@@map("instructor_profiles")
 }

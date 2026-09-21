@@ -403,13 +403,7 @@ const reviewInstructorApplication = async (
       data: {
         userId: user.id,
         instructorId: `INS-${Date.now()}`,
-      },
-      select: {
-        id: true,
-        userId: true,
-        instructorId: true,
-        createdAt: true,
-        updatedAt: true,
+        instructorEmail: user.email,
       },
     });
 
