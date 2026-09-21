@@ -1,27 +1,28 @@
+import cors from 'cors';
 import express, {
   type Application,
   type Request,
   type Response,
 } from 'express';
-import cors from 'cors';
 import helmet from 'helmet';
 import httpStatus from 'http-status';
 import config from './app/config/index.ts';
-import { AuthRoutes } from './app/modules/auth/auth.route.ts';
-import { ExamRoutes } from './app/modules/exam/exam.route.ts';
 import { notFound } from './app/middlewares/notFound.ts';
-import { globalErrorHandler } from './app/utils/globalErrorHandler.ts';
-import { DepartmentRoutes } from './app/modules/department/department.route.ts';
-import { ProgramRoutes } from './app/modules/program/program.route.ts';
-import { CourseRoutes } from './app/modules/course/course.route.ts';
-import { SemesterRoutes } from './app/modules/semester/semester.route.ts';
-import { CoursePrerequisiteRoutes } from './app/modules/course-prerequisite/course-prerequisite.route.ts';
-import { InstructorApplicationRoutes } from './app/modules/instructor-application/instructor-application.route.ts';
-import { InstructorRoutes } from './app/modules/instructor/instructor.route.ts';
-import { CourseRegistrationRoutes } from './app/modules/course-registration/course-registration.route.ts';
-import { StudentRoutes } from './app/modules/student/student.route.ts';
-import { SectionRoutes } from './app/modules/section/section.route.ts';
 import { AttendanceRoutes } from './app/modules/attendance/attendance.route.ts';
+import { AuthRoutes } from './app/modules/auth/auth.route.ts';
+import { CourseRoutes } from './app/modules/course/course.route.ts';
+import { CoursePrerequisiteRoutes } from './app/modules/course-prerequisite/course-prerequisite.route.ts';
+import { CourseRegistrationRoutes } from './app/modules/course-registration/course-registration.route.ts';
+import { DepartmentRoutes } from './app/modules/department/department.route.ts';
+import { ExamRoutes } from './app/modules/exam/exam.route.ts';
+import { InstructorRoutes } from './app/modules/instructor/instructor.route.ts';
+import { InstructorApplicationRoutes } from './app/modules/instructor-application/instructor-application.route.ts';
+import { ProgramRoutes } from './app/modules/program/program.route.ts';
+import { SectionRoutes } from './app/modules/section/section.route.ts';
+import { SemesterRoutes } from './app/modules/semester/semester.route.ts';
+import { StudentRoutes } from './app/modules/student/student.route.ts';
+import { globalErrorHandler } from './app/utils/globalErrorHandler.ts';
+import { ResultRoutes } from './app/modules/result/result.route.ts';
 
 const app: Application = express();
 
@@ -79,6 +80,9 @@ app.use('/api/v1/students', StudentRoutes);
 
 // AttendanceRoutes
 app.use('/api/v1/attendances', AttendanceRoutes);
+
+// ResultRoutes
+app.use('/api/v1/results', ResultRoutes);
 
 // WelcomeRoute
 app.get('/', (req: Request, res: Response) => {
