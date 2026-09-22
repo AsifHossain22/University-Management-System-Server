@@ -31,3 +31,23 @@ enum InstructorApplicationStatus {
   APPROVED
   REJECTED
 }
+
+enum FeeStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  BKASH
+}

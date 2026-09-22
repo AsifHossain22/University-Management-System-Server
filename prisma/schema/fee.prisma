@@ -1,0 +1,25 @@
+model Fee {
+  id                String    @id @default(uuid())
+  studentId         String
+  title             String
+  description       String?
+  amount            Float
+  dueDate           DateTime
+  status            FeeStatus @default(UNPAID)
+
+  isActive          Boolean   @default(true)
+  deletedAt         DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  student           StudentProfile @relation(fields: [studentId], references: [id])
+  payments          Payment[]
+
+  @@index([studentId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("fees")
+}

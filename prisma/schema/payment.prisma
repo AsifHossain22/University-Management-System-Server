@@ -1,0 +1,39 @@
+model Payment {
+  id                    String        @id @default(uuid())
+  feeId                 String
+  studentId             String
+
+  amount                Float
+  currency              String        @default("BDT")
+  paymentMethod         PaymentMethod @default(BKASH)
+  status                PaymentStatus @default(PENDING)
+
+  merchantInvoiceNumber String        @unique
+  bkashPaymentId        String?       @unique
+  bkashTrxId            String?       @unique
+  payerReference        String?
+
+  gatewayResponse       Json?
+
+  paidAt                DateTime?
+  failedAt              DateTime?
+  cancelledAt           DateTime?
+  refundedAt            DateTime?
+
+  refundAmount          Float?
+  refundTrxId           String?
+  refundReason          String?
+
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  fee                   Fee            @relation(fields: [feeId], references: [id])
+  student               StudentProfile @relation(fields: [studentId], references: [id])
+
+  @@index([feeId])
+  @@index([studentId])
+  @@index([status])
+  @@index([paymentMethod])
+  @@index([createdAt])
+  @@map("payments")
+}

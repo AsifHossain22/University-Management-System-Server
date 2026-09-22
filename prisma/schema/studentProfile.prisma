@@ -15,6 +15,9 @@ model StudentProfile {
 	user User @relation(fields: [userId], references: [id])
 
 	courseRegistrations CourseRegistration[]
+	fees               	Fee[]
+	payments           	Payment[]
+
 
 	@@index([userId])
 	@@index([studentId])
