@@ -23,6 +23,8 @@ import { SemesterRoutes } from './app/modules/semester/semester.route.ts';
 import { StudentRoutes } from './app/modules/student/student.route.ts';
 import { globalErrorHandler } from './app/utils/globalErrorHandler.ts';
 import { ResultRoutes } from './app/modules/result/result.route.ts';
+import { FeeRoutes } from './app/modules/fee/fee.route.ts';
+import { PaymentRoutes } from './app/modules/payment/payment.route.ts';
 
 const app: Application = express();
 
@@ -83,6 +85,12 @@ app.use('/api/v1/attendances', AttendanceRoutes);
 
 // ResultRoutes
 app.use('/api/v1/results', ResultRoutes);
+
+// FeeRoutes
+app.use('/api/v1/fees', FeeRoutes);
+
+// PaymentRoutes
+app.use('/api/v1/payments', PaymentRoutes);
 
 // WelcomeRoute
 app.get('/', (req: Request, res: Response) => {
