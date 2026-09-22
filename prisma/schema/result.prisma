@@ -1,24 +1,24 @@
 model Result {
-	id             String   @id @default(uuid())
-	registrationId String
-	examId         String
-	obtainedMarks  Float
-	remarks        String?
+  id             String  @id @default(uuid())
+  registrationId String
+  examId         String
+  obtainedMarks  Float
+  remarks        String?
 
-	isActive       Boolean  @default(true)
-	deletedAt      DateTime?
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
 
-	createdAt      DateTime @default(now())
-	updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-	registration CourseRegistration @relation(fields: [registrationId], references: [id])
+  registration CourseRegistration @relation(fields: [registrationId], references: [id])
 
-	exam Exam @relation(fields: [examId], references: [id])
+  exam Exam @relation(fields: [examId], references: [id])
 
-	@@unique([registrationId, examId])
-	@@index([registrationId])
-	@@index([examId])
-	@@index([isActive])
-	@@index([deletedAt])
-	@@map("results")
+  @@unique([registrationId, examId])
+  @@index([registrationId])
+  @@index([examId])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("results")
 }

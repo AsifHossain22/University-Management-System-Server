@@ -13,6 +13,7 @@ model User {
   studentProfile        StudentProfile?
   instructorProfile     InstructorProfile?
   instructorApplication InstructorApplication?
+  auditLogs             AuditLog[]
 
   @@index([role])
   @@index([isActive])
