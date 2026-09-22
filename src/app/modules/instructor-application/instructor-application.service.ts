@@ -6,6 +6,7 @@ import { prisma } from '../../../lib/prisma.ts';
 import { redisClient } from '../../../lib/redis.ts';
 import { transporter } from '../../../lib/nodemailer.ts';
 import { AppError } from '../../utils/AppError.ts';
+import { AuditLogService } from '../audit-log/audit-log.service.ts';
 import type {
   ApplyAsInstructorInput,
   InstructorApplicationQueryInput,
@@ -14,6 +15,7 @@ import type {
 } from './instructor-application.validation.ts';
 
 const OTP_EXPIRATION_SECONDS = 5 * 60;
+
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 
 const generateOtp = (): string => {
@@ -328,42 +330,63 @@ const reviewInstructorApplication = async (
     );
   }
 
+  // RejectApplication
   if (payload.status === 'REJECTED') {
-    const rejectedApplication = await prisma.instructorApplication.update({
-      where: {
-        id: application.id,
-      },
-      data: {
-        status: 'REJECTED',
-        rejectionReason: payload.rejectionReason!,
-        reviewedBy,
-        reviewedAt: new Date(),
-      },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        specialization: true,
-        qualification: true,
-        experienceYears: true,
-        bio: true,
-        departmentId: true,
-        emailVerifiedAt: true,
-        status: true,
-        rejectionReason: true,
-        reviewedBy: true,
-        reviewedAt: true,
-        userId: true,
-        deletedAt: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+    const rejectedApplication = await prisma.$transaction(async tx => {
+      const updatedApplication = await tx.instructorApplication.update({
+        where: {
+          id: application.id,
+        },
+        data: {
+          status: 'REJECTED',
+          rejectionReason: payload.rejectionReason!,
+          reviewedBy,
+          reviewedAt: new Date(),
+        },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          specialization: true,
+          qualification: true,
+          experienceYears: true,
+          bio: true,
+          departmentId: true,
+          emailVerifiedAt: true,
+          status: true,
+          rejectionReason: true,
+          reviewedBy: true,
+          reviewedAt: true,
+          userId: true,
+          deletedAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      await AuditLogService.createAuditLog(
+        {
+          userId: reviewedBy,
+          action: 'REJECT',
+          entity: 'INSTRUCTOR_APPLICATION',
+          entityId: application.id,
+          description: 'Instructor application rejected by Admin.',
+          metadata: {
+            rejectionReason: payload.rejectionReason,
+            email: application.email,
+          },
+        },
+        tx,
+      );
+
+      return updatedApplication;
     });
 
     return rejectedApplication;
   }
 
+  // ApproveApplication
   const result = await prisma.$transaction(async tx => {
     const existingUser = await tx.user.findUnique({
       where: {
@@ -440,6 +463,22 @@ const reviewInstructorApplication = async (
         updatedAt: true,
       },
     });
+
+    await AuditLogService.createAuditLog(
+      {
+        userId: reviewedBy,
+        action: 'APPROVE',
+        entity: 'INSTRUCTOR_APPLICATION',
+        entityId: application.id,
+        description: 'Instructor application approved by Admin.',
+        metadata: {
+          email: application.email,
+          createdUserId: user.id,
+          instructorProfileId: instructorProfile.id,
+        },
+      },
+      tx,
+    );
 
     return {
       user,
