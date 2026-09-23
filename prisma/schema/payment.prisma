@@ -1,39 +1,43 @@
 model Payment {
-  id        String @id @default(uuid())
-  feeId     String
-  studentId String
+	id        String @id @default(uuid())
+	feeId     String
+	studentId String
 
-  amount        Float
-  currency      String        @default("BDT")
-  paymentMethod PaymentMethod @default(BKASH)
-  status        PaymentStatus @default(PENDING)
+	amount        Float
+	currency      String        @default("BDT")
+	paymentMethod PaymentMethod @default(BKASH)
+	status        PaymentStatus @default(PENDING)
 
-  merchantInvoiceNumber String  @unique
-  bkashPaymentId        String? @unique
-  bkashTrxId            String? @unique
-  payerReference        String?
+	merchantInvoiceNumber String @unique
 
-  gatewayResponse Json?
+	invoiceNumber String? @unique
+	invoiceUrl    String?
 
-  paidAt      DateTime?
-  failedAt    DateTime?
-  cancelledAt DateTime?
-  refundedAt  DateTime?
+	bkashPaymentId String? @unique
+	bkashTrxId     String? @unique
+	payerReference String?
 
-  refundAmount Float?
-  refundTrxId  String?
-  refundReason String?
+	gatewayResponse Json?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+	paidAt      DateTime?
+	failedAt    DateTime?
+	cancelledAt DateTime?
+	refundedAt  DateTime?
 
-  fee     Fee            @relation(fields: [feeId], references: [id])
-  student StudentProfile @relation(fields: [studentId], references: [id])
+	refundAmount Float?
+	refundTrxId  String?
+	refundReason String?
 
-  @@index([feeId])
-  @@index([studentId])
-  @@index([status])
-  @@index([paymentMethod])
-  @@index([createdAt])
-  @@map("payments")
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
+
+	fee     Fee            @relation(fields: [feeId], references: [id])
+	student StudentProfile @relation(fields: [studentId], references: [id])
+
+	@@index([feeId])
+	@@index([studentId])
+	@@index([status])
+	@@index([paymentMethod])
+	@@index([createdAt])
+	@@map("payments")
 }

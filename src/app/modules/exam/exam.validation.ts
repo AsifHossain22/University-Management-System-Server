@@ -22,38 +22,56 @@ export const createExamSchema = examBaseSchema.refine(
   },
 );
 
-export const updateExamSchema = examBaseSchema.partial().refine(
-  data => {
-    if (data.passingMarks === undefined || data.totalMarks === undefined) {
-      return true;
+export const updateExamSchema = examBaseSchema
+  .partial()
+  .superRefine((data, ctx) => {
+    if (Object.keys(data).length === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'At least one field is required to update the exam!',
+      });
     }
 
-    return data.passingMarks <= data.totalMarks;
-  },
-  {
-    message: 'Passing marks cannot exceed total marks',
-    path: ['passingMarks'],
-  },
-);
+    if (
+      data.passingMarks !== undefined &&
+      data.totalMarks !== undefined &&
+      data.passingMarks > data.totalMarks
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Passing marks cannot exceed total marks',
+        path: ['passingMarks'],
+      });
+    }
+  });
 
 export const examQuerySchema = z.object({
   searchTerm: z.string().trim().optional(),
+
   sectionId: z.string().uuid('Invalid section ID').optional(),
+
   type: z
     .enum(['MIDTERM', 'FINAL', 'QUIZ', 'ASSIGNMENT', 'PRESENTATION'])
     .optional(),
+
   isActive: z
     .enum(['true', 'false'])
     .transform(value => value === 'true')
     .optional(),
+
   page: z.coerce.number().int().positive().default(1),
+
   limit: z.coerce.number().int().positive().max(100).default(10),
+
   sortBy: z
     .enum(['title', 'examDate', 'totalMarks', 'weight', 'createdAt'])
     .default('examDate'),
+
   sortOrder: z.enum(['asc', 'desc']).default('asc'),
 });
 
 export type CreateExamInput = z.infer<typeof createExamSchema>;
+
 export type UpdateExamInput = z.infer<typeof updateExamSchema>;
+
 export type ExamQueryInput = z.infer<typeof examQuerySchema>;

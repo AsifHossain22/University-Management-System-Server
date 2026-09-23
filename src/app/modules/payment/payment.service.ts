@@ -8,6 +8,8 @@ import type {
   ICreatePaymentPayload,
   IPaymentCallbackPayload,
 } from './payment.interface.ts';
+import { InvoiceService } from './invoice.service.ts';
+import { PaymentEmailService } from './payment-email.service.ts';
 
 const generateMerchantInvoiceNumber = () => {
   return `UNI-${Date.now()}-${crypto.randomUUID()}`;
@@ -197,6 +199,28 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
       status: true,
       merchantInvoiceNumber: true,
       bkashPaymentId: true,
+      invoiceNumber: true,
+      invoiceUrl: true,
+
+      student: {
+        select: {
+          studentId: true,
+          studentEmail: true,
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
+
+      fee: {
+        select: {
+          title: true,
+          description: true,
+        },
+      },
     },
   });
 
@@ -209,6 +233,8 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
     return {
       paymentId: payment.id,
       status: 'PAID',
+      invoiceNumber: payment.invoiceNumber,
+      invoiceUrl: payment.invoiceUrl,
       message: 'Payment has already been processed!',
     };
   }
@@ -273,93 +299,179 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
 
       // BKashTransactionID
       const bkashTrxId = bkashPayment.trxID;
+      const paidAt = new Date();
 
-      const finalizedPayment = await prisma.$transaction(async tx => {
-        const paymentUpdate = await tx.payment.updateMany({
-          where: {
-            id: payment.id,
-            status: 'PENDING',
+      // GenerateInvoiceBeforeFinalizingPayment
+      const invoiceNumber = InvoiceService.generateInvoiceNumber();
+
+      let uploadedInvoice: {
+        secureUrl: string;
+        publicId: string;
+        pdfBuffer: Buffer;
+      };
+
+      try {
+        uploadedInvoice = await InvoiceService.createPaymentInvoice({
+          invoiceNumber,
+          paymentDate: paidAt,
+          student: {
+            studentId: payment.student.studentId,
+            name: `${payment.student.user.firstName} ${payment.student.user.lastName}`,
+            email: payment.student.studentEmail,
           },
-          data: {
-            status: 'PAID',
-            bkashPaymentId: paymentID,
+          fee: {
+            title: payment.fee.title,
+            description: payment.fee.description,
+          },
+          payment: {
+            amount: payment.amount,
+            currency: payment.currency,
+            paymentMethod: 'BKASH',
             bkashTrxId,
-            paidAt: new Date(),
-            gatewayResponse: {
-              paymentID: bkashPayment.paymentID,
-              trxID: bkashTrxId,
-              transactionStatus: bkashPayment.transactionStatus,
-              amount: bkashPayment.amount,
-              currency: bkashPayment.currency,
-              merchantInvoiceNumber: bkashPayment.merchantInvoiceNumber,
-              statusCode: '0000',
-            },
+            bkashPaymentId: paymentID,
           },
         });
+      } catch {
+        throw new AppError(
+          httpStatus.BAD_GATEWAY,
+          'Payment was verified, but invoice generation failed. Please try again!',
+        );
+      }
 
-        if (paymentUpdate.count === 0) {
+      try {
+        const finalizedPayment = await prisma.$transaction(async tx => {
+          const paymentUpdate = await tx.payment.updateMany({
+            where: {
+              id: payment.id,
+              status: 'PENDING',
+            },
+            data: {
+              status: 'PAID',
+              bkashPaymentId: paymentID,
+              bkashTrxId,
+              paidAt,
+              invoiceNumber,
+              invoiceUrl: uploadedInvoice.secureUrl,
+              gatewayResponse: {
+                paymentID: bkashPayment.paymentID,
+                trxID: bkashTrxId,
+                transactionStatus: bkashPayment.transactionStatus,
+                amount: bkashPayment.amount,
+                currency: bkashPayment.currency,
+                merchantInvoiceNumber: bkashPayment.merchantInvoiceNumber,
+                statusCode: '0000',
+              },
+            },
+          });
+
+          if (paymentUpdate.count === 0) {
+            return tx.payment.findUnique({
+              where: {
+                id: payment.id,
+              },
+            });
+          }
+
+          const paidPayments = await tx.payment.aggregate({
+            where: {
+              feeId: payment.feeId,
+              studentId: payment.studentId,
+              status: 'PAID',
+            },
+            _sum: {
+              amount: true,
+            },
+          });
+
+          const totalPaid = paidPayments._sum.amount ?? 0;
+
+          const fee = await tx.fee.findUnique({
+            where: {
+              id: payment.feeId,
+            },
+            select: {
+              id: true,
+              amount: true,
+              status: true,
+            },
+          });
+
+          if (!fee) {
+            throw new AppError(
+              httpStatus.NOT_FOUND,
+              'Fee not found while finalizing payment!',
+            );
+          }
+
+          const newFeeStatus =
+            totalPaid >= fee.amount ? 'PAID' : 'PARTIALLY_PAID';
+
+          await tx.fee.update({
+            where: {
+              id: fee.id,
+            },
+            data: {
+              status: newFeeStatus,
+            },
+          });
+
           return tx.payment.findUnique({
             where: {
               id: payment.id,
             },
           });
-        }
-
-        const paidPayments = await tx.payment.aggregate({
-          where: {
-            feeId: payment.feeId,
-            studentId: payment.studentId,
-            status: 'PAID',
-          },
-          _sum: {
-            amount: true,
-          },
         });
 
-        const totalPaid = paidPayments._sum.amount ?? 0;
+        // SendInvoiceEmailAfterSuccessfulPayment
+        let emailSent = false;
 
-        const fee = await tx.fee.findUnique({
-          where: {
-            id: payment.feeId,
-          },
-          select: {
-            id: true,
-            amount: true,
-            status: true,
-          },
-        });
+        try {
+          await PaymentEmailService.sendPaymentSuccessEmail({
+            studentName: `${payment.student.user.firstName} ${payment.student.user.lastName}`,
+            studentEmail: payment.student.studentEmail,
+            invoiceNumber,
+            invoiceUrl: uploadedInvoice.secureUrl,
+            amount: payment.amount,
+            currency: payment.currency,
+            paymentMethod: 'BKASH',
+            bkashTrxId,
+            pdfBuffer: uploadedInvoice.pdfBuffer,
+          });
 
-        if (!fee) {
-          throw new AppError(
-            httpStatus.NOT_FOUND,
-            'Fee not found while finalizing payment!',
+          emailSent = true;
+        } catch (emailError) {
+          // EmailFailureMustNotChangeSuccessfulPayment
+          console.error(
+            'Payment was successful, but invoice email could not be sent:',
+            emailError,
           );
         }
 
-        const newFeeStatus =
-          totalPaid >= fee.amount ? 'PAID' : 'PARTIALLY_PAID';
+        return {
+          payment: finalizedPayment,
+          status: 'PAID',
+          invoiceNumber,
+          invoiceUrl: uploadedInvoice.secureUrl,
+          emailSent,
+          message: emailSent
+            ? 'Payment verified, completed, invoice generated, and invoice email sent successfully!'
+            : 'Payment verified and completed successfully, but the invoice email could not be sent.',
+        };
+      } catch (error) {
+        // DBTransactionFailedAfterInvoiceUploaded
+        try {
+          await InvoiceService.deleteInvoiceFromCloudinary(
+            uploadedInvoice.publicId,
+          );
+        } catch (cleanupError) {
+          console.error(
+            'Failed to clean up uploaded payment invoice:',
+            cleanupError,
+          );
+        }
 
-        await tx.fee.update({
-          where: {
-            id: fee.id,
-          },
-          data: {
-            status: newFeeStatus,
-          },
-        });
-
-        return tx.payment.findUnique({
-          where: {
-            id: payment.id,
-          },
-        });
-      });
-
-      return {
-        payment: finalizedPayment,
-        status: 'PAID',
-        message: 'Payment verified and completed successfully!',
-      };
+        throw error;
+      }
     }
 
     const paymentStatus =

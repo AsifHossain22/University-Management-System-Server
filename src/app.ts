@@ -25,6 +25,7 @@ import { globalErrorHandler } from './app/utils/globalErrorHandler.ts';
 import { ResultRoutes } from './app/modules/result/result.route.ts';
 import { FeeRoutes } from './app/modules/fee/fee.route.ts';
 import { PaymentRoutes } from './app/modules/payment/payment.route.ts';
+import { AuditLogRoutes } from './app/modules/audit-log/audit-log.route.ts';
 
 const app: Application = express();
 
@@ -91,6 +92,9 @@ app.use('/api/v1/fees', FeeRoutes);
 
 // PaymentRoutes
 app.use('/api/v1/payments', PaymentRoutes);
+
+// AuditLogRoutes
+app.use('/api/v1/audit-logs', AuditLogRoutes);
 
 // WelcomeRoute
 app.get('/', (req: Request, res: Response) => {

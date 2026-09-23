@@ -345,9 +345,11 @@ const resetPassword = async (payload: IResetPasswordPayload) => {
 
 // LogInUser
 const loginUser = async (payload: ILoginUser) => {
+  const email = payload.email.trim().toLowerCase();
+
   const user = await prisma.user.findUnique({
     where: {
-      email: payload.email,
+      email: email,
     },
   });
 
