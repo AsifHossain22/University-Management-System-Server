@@ -8,8 +8,7 @@ model Semester {
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-
-  sections Section[]
+  sections  Section[]
 
   @@index([isActive])
   @@index([startDate])

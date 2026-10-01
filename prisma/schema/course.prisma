@@ -1,23 +1,20 @@
 model Course {
-  id           String    @id @default(uuid())
-  name         String
-  code         String    @unique
-  description  String?
-  credits      Int
-  departmentId String
-  programId    String
-  isActive     Boolean   @default(true)
-  deletedAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  department Department @relation(fields: [departmentId], references: [id])
-  program    Program    @relation(fields: [programId], references: [id])
-
+  id            String               @id @default(uuid())
+  name          String
+  code          String               @unique
+  description   String?
+  credits       Int
+  departmentId  String
+  programId     String
+  isActive      Boolean              @default(true)
+  deletedAt     DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
   prerequisites CoursePrerequisite[] @relation("CoursePrerequisites")
   requiredFor   CoursePrerequisite[] @relation("CoursePrerequisiteFor")
-
-  sections Section[]
+  department    Department           @relation(fields: [departmentId], references: [id])
+  program       Program              @relation(fields: [programId], references: [id])
+  sections      Section[]
 
   @@index([departmentId])
   @@index([programId])

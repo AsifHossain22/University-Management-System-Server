@@ -7,12 +7,11 @@ model CourseRegistration {
   droppedAt    DateTime?
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
-
-  student     StudentProfile @relation(fields: [studentId], references: [id])
-  section     Section        @relation(fields: [sectionId], references: [id])
-  attendances Attendance[]
-  results     Result[]
-  courseGrade CourseGrade?
+  attendances  Attendance[]
+  courseGrade  CourseGrade?
+  section      Section            @relation(fields: [sectionId], references: [id])
+  student      StudentProfile     @relation(fields: [studentId], references: [id])
+  results      Result[]
 
   @@unique([studentId, sectionId])
   @@index([studentId])

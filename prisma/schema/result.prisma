@@ -1,19 +1,15 @@
 model Result {
-  id             String  @id @default(uuid())
+  id             String             @id @default(uuid())
   registrationId String
   examId         String
   obtainedMarks  Float
   remarks        String?
-
-  isActive  Boolean   @default(true)
-  deletedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  registration CourseRegistration @relation(fields: [registrationId], references: [id])
-
-  exam Exam @relation(fields: [examId], references: [id])
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  deletedAt      DateTime?
+  isActive       Boolean            @default(true)
+  exam           Exam               @relation(fields: [examId], references: [id])
+  registration   CourseRegistration @relation(fields: [registrationId], references: [id])
 
   @@unique([registrationId, examId])
   @@index([registrationId])

@@ -1,21 +1,20 @@
 model Section {
-  id           String    @id @default(uuid())
-  name         String
-  code         String
-  courseId     String
-  semesterId   String
-  instructorId String
-  capacity     Int
-  isActive     Boolean   @default(true)
-  deletedAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  course        Course               @relation(fields: [courseId], references: [id])
-  semester      Semester             @relation(fields: [semesterId], references: [id])
-  instructor    InstructorProfile    @relation(fields: [instructorId], references: [id])
+  id            String               @id @default(uuid())
+  name          String
+  code          String
+  courseId      String
+  semesterId    String
+  instructorId  String
+  capacity      Int
+  isActive      Boolean              @default(true)
+  deletedAt     DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
   registrations CourseRegistration[]
   exams         Exam[]
+  course        Course               @relation(fields: [courseId], references: [id])
+  instructor    InstructorProfile    @relation(fields: [instructorId], references: [id])
+  semester      Semester             @relation(fields: [semesterId], references: [id])
 
   @@unique([code, semesterId])
   @@index([courseId])

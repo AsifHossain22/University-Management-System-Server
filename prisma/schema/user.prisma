@@ -1,19 +1,18 @@
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  passwordHash String?
-  role         UserRole
-  firstName    String
-  lastName     String
-  isActive     Boolean   @default(true)
-  deletedAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  studentProfile        StudentProfile?
-  instructorProfile     InstructorProfile?
-  instructorApplication InstructorApplication?
+  id                    String                 @id @default(uuid())
+  email                 String                 @unique
+  passwordHash          String?
+  role                  UserRole
+  firstName             String
+  lastName              String
+  isActive              Boolean                @default(true)
+  deletedAt             DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
   auditLogs             AuditLog[]
+  instructorApplication InstructorApplication?
+  instructorProfile     InstructorProfile?
+  studentProfile        StudentProfile?
 
   @@index([role])
   @@index([isActive])

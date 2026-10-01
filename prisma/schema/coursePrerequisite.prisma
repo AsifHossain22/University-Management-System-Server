@@ -3,9 +3,8 @@ model CoursePrerequisite {
   courseId       String
   prerequisiteId String
   createdAt      DateTime @default(now())
-
-  course       Course @relation("CoursePrerequisites", fields: [courseId], references: [id])
-  prerequisite Course @relation("CoursePrerequisiteFor", fields: [prerequisiteId], references: [id])
+  course         Course   @relation("CoursePrerequisites", fields: [courseId], references: [id])
+  prerequisite   Course   @relation("CoursePrerequisiteFor", fields: [prerequisiteId], references: [id])
 
   @@unique([courseId, prerequisiteId])
   @@index([courseId])
