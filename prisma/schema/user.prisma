@@ -5,6 +5,8 @@ model User {
   role                  UserRole
   firstName             String
   lastName              String
+  profileImagePublicId  String?
+  profileImageUrl       String?
   isActive              Boolean                @default(true)
   deletedAt             DateTime?
   createdAt             DateTime               @default(now())

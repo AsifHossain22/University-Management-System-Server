@@ -19,6 +19,7 @@ import type {
   IResetPasswordPayload,
 } from './auth.interface.ts';
 import config from '../../config/index.ts';
+import { cloudinary } from '../../../lib/cloudinary.ts';
 
 // RegisterUser
 const registerUser = async (payload: IRegisterUser) => {
@@ -507,6 +508,131 @@ const getMe = async (userId: string) => {
   return user;
 };
 
+// UpdateMe
+const updateMe = async (
+  userId: string,
+  payload: {
+    firstName?: string;
+    lastName?: string;
+  },
+) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found!');
+  }
+
+  if (!user.isActive || user.deletedAt) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Your account is inactive. Please contact the Admin.',
+    );
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      ...(payload.firstName !== undefined && {
+        firstName: payload.firstName,
+      }),
+      ...(payload.lastName !== undefined && {
+        lastName: payload.lastName,
+      }),
+    },
+    omit: {
+      passwordHash: true,
+    },
+  });
+
+  return updatedUser;
+};
+
+// UpdateProfilePhoto
+const updateProfilePhoto = async (
+  userId: string,
+  file: Express.Multer.File,
+) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      profileImagePublicId: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found!');
+  }
+
+  // UploadImage
+  const uploadImage = () =>
+    new Promise<{
+      secure_url: string;
+      public_id: string;
+    }>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'university-management/users',
+          resource_type: 'image',
+        },
+        (error, result) => {
+          if (error || !result) {
+            reject(
+              new AppError(
+                httpStatus.INTERNAL_SERVER_ERROR,
+                'Failed to upload profile photo.',
+              ),
+            );
+            return;
+          }
+
+          resolve({
+            secure_url: result.secure_url,
+            public_id: result.public_id,
+          });
+        },
+      );
+
+      uploadStream.end(file.buffer);
+    });
+
+  const uploadedImage = await uploadImage();
+
+  try {
+    const updatedUser = await prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        profileImageUrl: uploadedImage.secure_url,
+        profileImagePublicId: uploadedImage.public_id,
+      },
+      omit: {
+        passwordHash: true,
+      },
+    });
+
+    // DeleteOldImage
+    if (user.profileImagePublicId) {
+      await cloudinary.uploader.destroy(user.profileImagePublicId);
+    }
+
+    return updatedUser;
+  } catch (error) {
+    // DeleteNewImageIfDatabaseUpdateFails
+    await cloudinary.uploader.destroy(uploadedImage.public_id);
+    throw error;
+  }
+};
+
 // GoogleLogin
 const googleLogin = async (payload: IGoogleLoginPayload) => {
   // VerifyGoogleIdToken
@@ -614,6 +740,8 @@ export const AuthService = {
   loginUser,
   refreshToken,
   getMe,
+  updateMe,
+  updateProfilePhoto,
   googleLogin,
   forgotPassword,
   resetPassword,
