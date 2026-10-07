@@ -2,7 +2,10 @@ import httpStatus from 'http-status';
 import { prisma } from '../../../lib/prisma.ts';
 import { cloudinary } from '../../../lib/cloudinary.ts';
 import { AppError } from '../../utils/AppError.ts';
-import type { UpdateInstructorProfileInput } from './instructor.validation.ts';
+import type {
+  InstructorQueryInput,
+  UpdateInstructorProfileInput,
+} from './instructor.validation.ts';
 
 // GetMyProfile
 const getMyProfile = async (userId: string) => {
@@ -235,8 +238,64 @@ const updateProfilePhoto = async (
   }
 };
 
+// GetAllInstructors
+const getAllInstructors = async (query: InstructorQueryInput) => {
+  const { searchTerm } = query;
+
+  const instructors = await prisma.instructorProfile.findMany({
+    where: {
+      user: {
+        isActive: true,
+        deletedAt: null,
+        ...(searchTerm && {
+          OR: [
+            {
+              firstName: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+            {
+              lastName: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+            {
+              email: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+          ],
+        }),
+      },
+    },
+    select: {
+      id: true,
+      instructorId: true,
+      instructorEmail: true,
+      specialization: true,
+      qualification: true,
+      user: {
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  return instructors;
+};
+
 export const InstructorService = {
   getMyProfile,
   updateMyProfile,
   updateProfilePhoto,
+  getAllInstructors,
 };

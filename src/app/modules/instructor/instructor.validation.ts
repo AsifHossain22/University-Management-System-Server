@@ -38,3 +38,9 @@ export const updateInstructorProfileSchema = z
 export type UpdateInstructorProfileInput = z.infer<
   typeof updateInstructorProfileSchema
 >;
+
+export const instructorQuerySchema = z.object({
+  searchTerm: z.string().trim().optional(),
+});
+
+export type InstructorQueryInput = z.infer<typeof instructorQuerySchema>;

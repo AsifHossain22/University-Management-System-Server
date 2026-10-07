@@ -6,6 +6,9 @@ import { upload } from '../../../lib/multer.ts';
 
 const router = Router();
 
+// GetAllInstructors
+router.get('/', auth(UserRole.ADMIN), InstructorController.getAllInstructors);
+
 // GetMyProfile
 router.get(
   '/profile',

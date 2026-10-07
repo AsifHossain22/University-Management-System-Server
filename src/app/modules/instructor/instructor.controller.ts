@@ -2,7 +2,10 @@ import httpStatus from 'http-status';
 import type { Request, Response } from 'express';
 import { AppError } from '../../utils/AppError.ts';
 import { InstructorService } from './instructor.service.ts';
-import { updateInstructorProfileSchema } from './instructor.validation.ts';
+import {
+  instructorQuerySchema,
+  updateInstructorProfileSchema,
+} from './instructor.validation.ts';
 
 // GetMyProfile
 const getMyProfile = async (req: Request, res: Response) => {
@@ -70,8 +73,22 @@ const updateProfilePhoto = async (req: Request, res: Response) => {
   });
 };
 
+// GetAllInstructors
+const getAllInstructors = async (req: Request, res: Response) => {
+  const query = instructorQuerySchema.parse(req.query);
+
+  const result = await InstructorService.getAllInstructors(query);
+
+  res.status(httpStatus.OK).json({
+    success: true,
+    message: 'Instructors retrieved successfully!',
+    data: result,
+  });
+};
+
 export const InstructorController = {
   getMyProfile,
   updateMyProfile,
   updateProfilePhoto,
+  getAllInstructors,
 };
