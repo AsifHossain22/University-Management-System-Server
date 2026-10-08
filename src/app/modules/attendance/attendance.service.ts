@@ -469,8 +469,102 @@ const updateAttendance = async (
   return updatedAttendance;
 };
 
+// GetMyAttendance
+const getMyAttendance = async (
+  studentUserId: string,
+  query: AttendanceQueryInput,
+) => {
+  const student = await prisma.studentProfile.findUnique({
+    where: {
+      userId: studentUserId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!student) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Student profile not found!');
+  }
+
+  const { page = 1, limit = 10, status, date } = query;
+  const skip = (page - 1) * limit;
+
+  const attendanceDate = date ? new Date(date) : undefined;
+
+  if (attendanceDate) {
+    attendanceDate.setHours(0, 0, 0, 0);
+  }
+
+  const where: Prisma.AttendanceWhereInput = {
+    registration: {
+      studentId: student.id,
+    },
+    ...(status && { status }),
+    ...(attendanceDate && { date: attendanceDate }),
+  };
+
+  const [data, total] = await prisma.$transaction([
+    prisma.attendance.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: {
+        date: 'desc',
+      },
+      select: {
+        id: true,
+        date: true,
+        status: true,
+        remarks: true,
+        markedAt: true,
+        createdAt: true,
+        registration: {
+          select: {
+            status: true,
+            section: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                course: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    credits: true,
+                  },
+                },
+                semester: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    }),
+    prisma.attendance.count({ where }),
+  ]);
+
+  return {
+    data,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
 export const AttendanceService = {
   createAttendance,
   getAttendances,
   updateAttendance,
+  getMyAttendance,
 };

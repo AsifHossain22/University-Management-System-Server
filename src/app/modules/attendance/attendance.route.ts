@@ -34,4 +34,12 @@ router.patch(
   AttendanceController.updateAttendance,
 );
 
+// GetMyAttendance - STUDENT
+router.get(
+  '/my-attendance',
+  auth(UserRole.STUDENT),
+  validateRequest(attendanceQuerySchema, 'query'),
+  AttendanceController.getMyAttendance,
+);
+
 export const AttendanceRoutes = router;

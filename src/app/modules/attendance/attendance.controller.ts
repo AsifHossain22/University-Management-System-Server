@@ -74,8 +74,33 @@ const updateAttendance = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// GetMyAttendance
+const getMyAttendance = catchAsync(async (req: Request, res: Response) => {
+  if (!req.user?.userId) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      'Authenticated student information was not found!',
+    );
+  }
+
+  const query = res.locals.query as AttendanceQueryInput;
+
+  const result = await AttendanceService.getMyAttendance(
+    req.user.userId,
+    query,
+  );
+
+  res.status(httpStatus.OK).json({
+    success: true,
+    message: 'Student attendance records retrieved successfully!',
+    data: result.data,
+    meta: result.meta,
+  });
+});
+
 export const AttendanceController = {
   createAttendance,
   getAttendances,
   updateAttendance,
+  getMyAttendance,
 };
