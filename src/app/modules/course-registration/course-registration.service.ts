@@ -119,7 +119,7 @@ const registerCourse = async (
             );
           }
 
-          // PreventDuplicateRegistration
+          // FindExistingRegistration
           const existingRegistration = await tx.courseRegistration.findUnique({
             where: {
               studentId_sectionId: {
@@ -133,7 +133,11 @@ const registerCourse = async (
             },
           });
 
-          if (existingRegistration) {
+          // PreventDuplicateActiveRegistration
+          if (
+            existingRegistration &&
+            existingRegistration.status !== 'DROPPED'
+          ) {
             throw new AppError(
               httpStatus.CONFLICT,
               `You already have a ${existingRegistration.status.toLowerCase()} registration for this section.`,
@@ -148,7 +152,10 @@ const registerCourse = async (
             },
           });
 
-          if (registeredStudentCount >= section.capacity) {
+          if (
+            !existingRegistration &&
+            registeredStudentCount >= section.capacity
+          ) {
             throw new AppError(
               httpStatus.CONFLICT,
               'This section is already full!',
@@ -210,6 +217,62 @@ const registerCourse = async (
                 `You must complete the following prerequisite course(s) first: ${prerequisiteNames.join(', ')}`,
               );
             }
+          }
+
+          // ReactivateDroppedRegistration
+          if (
+            existingRegistration &&
+            existingRegistration.status === 'DROPPED'
+          ) {
+            const registration = await tx.courseRegistration.update({
+              where: {
+                id: existingRegistration.id,
+              },
+              data: {
+                status: 'REGISTERED',
+                droppedAt: null,
+              },
+              select: {
+                id: true,
+                status: true,
+                registeredAt: true,
+                student: {
+                  select: {
+                    studentId: true,
+                    user: {
+                      select: {
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                      },
+                    },
+                  },
+                },
+                section: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                    capacity: true,
+                    course: {
+                      select: {
+                        name: true,
+                        code: true,
+                        credits: true,
+                      },
+                    },
+                    semester: {
+                      select: {
+                        name: true,
+                        code: true,
+                      },
+                    },
+                  },
+                },
+              },
+            });
+
+            return registration;
           }
 
           // CreateCourseRegistration
@@ -310,11 +373,9 @@ const getMyRegistrations = async (
 
   const where: Prisma.CourseRegistrationWhereInput = {
     studentId: student.id,
-
     ...(status && {
       status,
     }),
-
     ...(searchTerm && {
       section: {
         OR: [
@@ -402,7 +463,6 @@ const getMyRegistrations = async (
         },
       },
     }),
-
     prisma.courseRegistration.count({
       where,
     }),

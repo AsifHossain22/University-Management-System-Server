@@ -114,7 +114,10 @@ const createSection = async (payload: CreateSectionInput) => {
 };
 
 // GetAllSections
-const getSections = async (query: SectionQueryInput) => {
+const getSections = async (
+  query: SectionQueryInput,
+  userRole?: 'ADMIN' | 'STUDENT' | 'INSTRUCTOR',
+) => {
   const {
     searchTerm,
     courseId,
@@ -153,6 +156,26 @@ const getSections = async (query: SectionQueryInput) => {
     ...(semesterId ? { semesterId } : {}),
     ...(instructorId ? { instructorId } : {}),
     ...(isActive !== undefined ? { isActive } : {}),
+
+    // StudentOnlyAvailableSections
+    ...(userRole === 'STUDENT'
+      ? {
+          course: {
+            isActive: true,
+            deletedAt: null,
+          },
+          semester: {
+            isActive: true,
+            deletedAt: null,
+            startDate: {
+              lte: new Date(),
+            },
+            endDate: {
+              gte: new Date(),
+            },
+          },
+        }
+      : {}),
   };
 
   const [sections, total] = await prisma.$transaction([

@@ -25,7 +25,7 @@ const createSection = async (req: Request, res: Response) => {
 const getSections = async (req: Request, res: Response) => {
   const query = sectionQuerySchema.parse(req.query);
 
-  const result = await SectionService.getSections(query);
+  const result = await SectionService.getSections(query, req.user?.role);
 
   res.status(httpStatus.OK).json({
     success: true,
