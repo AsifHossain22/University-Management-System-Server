@@ -9,11 +9,40 @@ import {
 } from './instructor-application.validation.ts';
 import { InstructorApplicationService } from './instructor-application.service.ts';
 
+// UploadedFiles
+type InstructorApplicationFiles = {
+  profilePhoto?: Express.Multer.File;
+  cv?: Express.Multer.File;
+  supportingDocuments: Express.Multer.File[];
+};
+
 // ApplyAsInstructor
 const applyAsInstructor = async (req: Request, res: Response) => {
+  // ValidateApplicationData
   const payload = applyAsInstructorSchema.parse(req.body);
 
-  const result = await InstructorApplicationService.applyAsInstructor(payload);
+  // ReadUploadedFiles
+  const uploadedFiles = req.files as
+    | {
+        [fieldname: string]: Express.Multer.File[];
+      }
+    | undefined;
+
+  const files: InstructorApplicationFiles = {
+    ...(uploadedFiles?.profilePhoto?.[0] && {
+      profilePhoto: uploadedFiles.profilePhoto[0],
+    }),
+    ...(uploadedFiles?.cv?.[0] && {
+      cv: uploadedFiles.cv[0],
+    }),
+    supportingDocuments: uploadedFiles?.supportingDocuments ?? [],
+  };
+
+  // SubmitApplication
+  const result = await InstructorApplicationService.applyAsInstructor(
+    payload,
+    files,
+  );
 
   res.status(httpStatus.CREATED).json({
     success: true,

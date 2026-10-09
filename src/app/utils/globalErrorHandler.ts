@@ -38,9 +38,17 @@ export const globalErrorHandler = (
     statusCode = httpStatus.BAD_REQUEST;
 
     if (err.code === 'LIMIT_FILE_SIZE') {
-      errorMessage = 'File size is too large. Maximum allowed size is 2 MB.';
+      errorMessage = 'File size is too large. Maximum allowed size is 5 MB.';
+    } else if (err.code === 'LIMIT_FILE_COUNT') {
+      errorMessage =
+        'Too many files uploaded. You can upload up to 7 files in total.';
     } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-      errorMessage = 'Unexpected file field.';
+      errorMessage =
+        'Unexpected file field or too many files for the selected field.';
+    } else if (err.code === 'LIMIT_FIELD_COUNT') {
+      errorMessage = 'Too many form fields were submitted.';
+    } else if (err.code === 'LIMIT_PART_COUNT') {
+      errorMessage = 'Too many multipart form parts were submitted.';
     } else {
       errorMessage = err.message;
     }

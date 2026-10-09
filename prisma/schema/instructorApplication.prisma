@@ -8,6 +8,18 @@ model InstructorApplication {
   qualification   String
   experienceYears Int
   bio             String?
+
+  // ProfilePhoto
+  profilePhotoUrl      String?
+  profilePhotoPublicId String?
+
+  // CV
+  cvUrl     String?
+  cvPublicId String?
+
+  // SupportingDocuments
+  supportingDocuments Json?
+
   departmentId    String?
   emailVerifiedAt DateTime?
   status          InstructorApplicationStatus @default(PENDING)
@@ -18,8 +30,9 @@ model InstructorApplication {
   deletedAt       DateTime?
   createdAt       DateTime                    @default(now())
   updatedAt       DateTime                    @updatedAt
-  department      Department?                 @relation(fields: [departmentId], references: [id])
-  user            User?                       @relation(fields: [userId], references: [id])
+
+  department Department? @relation(fields: [departmentId], references: [id])
+  user       User?       @relation(fields: [userId], references: [id])
 
   @@index([email])
   @@index([status])
