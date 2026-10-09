@@ -35,7 +35,7 @@ app.use(helmet());
 // CORS
 app.use(
   cors({
-    origin: config.client_url,
+    origin: config.frontend_url,
   }),
 );
 

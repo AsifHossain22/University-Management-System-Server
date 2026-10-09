@@ -6,6 +6,9 @@ import { StudentController } from './student.controller.ts';
 
 const router = Router();
 
+// AdminCanViewAllStudents
+router.get('/', auth(UserRole.ADMIN), StudentController.getAllStudents);
+
 // GetAuthenticatedStudentsProfile
 router.get('/profile', auth(UserRole.STUDENT), StudentController.getMyProfile);
 

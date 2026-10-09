@@ -188,8 +188,36 @@ const updateProfilePhoto = async (
   }
 };
 
+// GetAllStudents
+const getAllStudents = async () => {
+  return prisma.studentProfile.findMany({
+    where: {
+      user: {
+        deletedAt: null,
+        isActive: true,
+      },
+    },
+    select: {
+      id: true, // StudentUUID — RequiredForFeeCreation
+      studentId: true, // DisplayedStudentNumber
+      studentEmail: true,
+      user: {
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+};
+
 export const StudentService = {
   getMyProfile,
   updateMyProfile,
   updateProfilePhoto,
+  getAllStudents,
 };
