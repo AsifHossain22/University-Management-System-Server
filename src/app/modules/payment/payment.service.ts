@@ -566,7 +566,52 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
   };
 };
 
+// GetMyPayments
+const getMyPayments = async (userId: string) => {
+  const student = await prisma.studentProfile.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+
+  if (!student) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Student profile not found!');
+  }
+
+  const payments = await prisma.payment.findMany({
+    where: {
+      studentId: student.id,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    select: {
+      id: true,
+      feeId: true,
+      amount: true,
+      currency: true,
+      paymentMethod: true,
+      status: true,
+      bkashTrxId: true,
+      merchantInvoiceNumber: true,
+      invoiceNumber: true,
+      invoiceUrl: true,
+      paidAt: true,
+      failedAt: true,
+      cancelledAt: true,
+      createdAt: true,
+      fee: {
+        select: {
+          title: true,
+        },
+      },
+    },
+  });
+
+  return payments;
+};
+
 export const PaymentService = {
   createPayment,
   handlePaymentCallback,
+  getMyPayments,
 };

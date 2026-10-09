@@ -75,7 +75,19 @@ const handlePaymentCallback = async (req: Request, res: Response) => {
   }
 };
 
+// GetMyPayments
+const getMyPayments = async (req: Request, res: Response) => {
+  const payments = await PaymentService.getMyPayments(req.user!.userId);
+
+  res.status(httpStatus.OK).json({
+    success: true,
+    message: 'Payment history retrieved successfully!',
+    data: payments,
+  });
+};
+
 export const PaymentController = {
   createPayment,
   handlePaymentCallback,
+  getMyPayments,
 };

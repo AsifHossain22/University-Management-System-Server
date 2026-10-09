@@ -25,4 +25,11 @@ router.get(
   PaymentController.handlePaymentCallback,
 );
 
+// GetPaymentHistoryForAuthenticatedStudent
+router.get(
+  '/my-payments',
+  auth(UserRole.STUDENT),
+  PaymentController.getMyPayments,
+);
+
 export const PaymentRoutes = router;
