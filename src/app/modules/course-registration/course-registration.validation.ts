@@ -23,3 +23,11 @@ export type CreateCourseRegistrationInput = z.infer<
 export type CourseRegistrationQueryInput = z.infer<
   typeof courseRegistrationQuerySchema
 >;
+
+export const sectionRegistrationsParamsSchema = z.object({
+  sectionId: z.uuid('Section ID must be a valid UUID'),
+});
+
+export type SectionRegistrationsParamsInput = z.infer<
+  typeof sectionRegistrationsParamsSchema
+>;

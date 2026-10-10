@@ -5,6 +5,13 @@ import { CourseRegistrationController } from './course-registration.controller.t
 
 const router = Router();
 
+// GetRegisteredStudentsBySection
+router.get(
+  '/sections/:sectionId',
+  auth(UserRole.ADMIN),
+  CourseRegistrationController.getRegisteredStudentsBySection,
+);
+
 // GetMyCourseRegistrations
 router.get(
   '/',

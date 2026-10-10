@@ -5,6 +5,7 @@ import { CourseRegistrationService } from './course-registration.service.ts';
 import {
   createCourseRegistrationSchema,
   courseRegistrationQuerySchema,
+  sectionRegistrationsParamsSchema,
 } from './course-registration.validation.ts';
 
 // RegisterCourse
@@ -53,6 +54,20 @@ const getMyRegistrations = async (req: Request, res: Response) => {
   });
 };
 
+// GetRegisteredStudentsBySection
+const getRegisteredStudentsBySection = async (req: Request, res: Response) => {
+  const { sectionId } = sectionRegistrationsParamsSchema.parse(req.params);
+
+  const result =
+    await CourseRegistrationService.getRegisteredStudentsBySection(sectionId);
+
+  res.status(httpStatus.OK).json({
+    success: true,
+    message: 'Registered students retrieved successfully!',
+    data: result,
+  });
+};
+
 // DropCourse
 const dropCourse = async (req: Request, res: Response) => {
   if (!req.user?.userId) {
@@ -83,5 +98,6 @@ const dropCourse = async (req: Request, res: Response) => {
 export const CourseRegistrationController = {
   registerCourse,
   getMyRegistrations,
+  getRegisteredStudentsBySection,
   dropCourse,
 };

@@ -481,6 +481,57 @@ const getMyRegistrations = async (
   };
 };
 
+// GetRegisteredStudentsBySection
+const getRegisteredStudentsBySection = async (sectionId: string) => {
+  const section = await prisma.section.findUnique({
+    where: {
+      id: sectionId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!section) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Section not found!');
+  }
+
+  const registrations = await prisma.courseRegistration.findMany({
+    where: {
+      sectionId,
+      status: 'REGISTERED',
+    },
+    orderBy: [
+      {
+        student: {
+          studentId: 'asc',
+        },
+      },
+    ],
+    select: {
+      id: true,
+      status: true,
+      registeredAt: true,
+      student: {
+        select: {
+          id: true,
+          studentId: true,
+          studentEmail: true,
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return registrations;
+};
+
 // DropCourse
 const dropCourse = async (userId: string, registrationId: string) => {
   const student = await prisma.studentProfile.findUnique({
@@ -571,5 +622,6 @@ const dropCourse = async (userId: string, registrationId: string) => {
 export const CourseRegistrationService = {
   registerCourse,
   getMyRegistrations,
+  getRegisteredStudentsBySection,
   dropCourse,
 };
