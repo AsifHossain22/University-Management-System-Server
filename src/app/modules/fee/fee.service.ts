@@ -373,13 +373,33 @@ const updateFee = async (feeId: string, payload: IUpdateFeePayload) => {
     throw new AppError(httpStatus.NOT_FOUND, 'Fee not found!');
   }
 
-  if (existingFee.status === 'PAID' && payload.amount !== undefined) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'A fully paid fee amount cannot be changed!',
-    );
+  // PreventAmountChangesIfAnyPaymentRecordExists
+  // ThisIncludes PENDING, PAID, FAILED, and CANCELLED payments
+  if (payload.amount !== undefined) {
+    const paymentCount = await prisma.payment.count({
+      where: {
+        feeId,
+      },
+    });
+
+    if (paymentCount > 0) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'The fee amount cannot be changed because payment records already exist.',
+      );
+    }
+
+    // AdditionalSafeguardForPreviouslyMarkedPaidFees
+    if (existingFee.status === 'PAID') {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'A fully paid fee amount cannot be changed!',
+      );
+    }
   }
 
+  // AllowOnlyDescriptiveFieldsAmountAndDueDate
+  // StatusIsManagedByThePaymentWorkflow
   const updateData = {
     ...(payload.title !== undefined ? { title: payload.title } : {}),
     ...(payload.description !== undefined
@@ -387,8 +407,6 @@ const updateFee = async (feeId: string, payload: IUpdateFeePayload) => {
       : {}),
     ...(payload.amount !== undefined ? { amount: payload.amount } : {}),
     ...(payload.dueDate !== undefined ? { dueDate: payload.dueDate } : {}),
-    ...(payload.status !== undefined ? { status: payload.status } : {}),
-    ...(payload.isActive !== undefined ? { isActive: payload.isActive } : {}),
   };
 
   const fee = await prisma.fee.update({
@@ -426,13 +444,22 @@ const deleteFee = async (feeId: string) => {
     throw new AppError(httpStatus.NOT_FOUND, 'Fee not found!');
   }
 
-  if (existingFee.status === 'PAID') {
+  // PreserveFeesLinkedToAnyPaymentHistory
+  // DoNotDeleteFeesWith pending, paid, failed or cancelled payments
+  const paymentCount = await prisma.payment.count({
+    where: {
+      feeId,
+    },
+  });
+
+  if (paymentCount > 0) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      'A fully paid fee cannot be deleted!',
+      'This fee cannot be deleted because payment records exist.',
     );
   }
 
+  // SoftDeleteOnly - RetainFeeRecordInDatabase
   await prisma.fee.update({
     where: {
       id: feeId,

@@ -11,14 +11,6 @@ export interface IUpdateFeePayload {
   description?: string | undefined;
   amount?: number | undefined;
   dueDate?: Date | undefined;
-  status?:
-    | 'UNPAID'
-    | 'PARTIALLY_PAID'
-    | 'PAID'
-    | 'OVERDUE'
-    | 'CANCELLED'
-    | undefined;
-  isActive?: boolean | undefined;
 }
 
 export interface IFeeQuery {

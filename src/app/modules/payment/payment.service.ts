@@ -22,11 +22,8 @@ const createPayment = async (
 ) => {
   const { feeId, amount } = payload;
 
-  // FindAuthenticatedStudentProfile
   const student = await prisma.studentProfile.findUnique({
-    where: {
-      userId,
-    },
+    where: { userId },
     select: {
       id: true,
       studentId: true,
@@ -44,7 +41,6 @@ const createPayment = async (
     throw new AppError(httpStatus.NOT_FOUND, 'Student profile not found!');
   }
 
-  // FindActiveAndNonDeletedFeeBelongingStudent
   const fee = await prisma.fee.findFirst({
     where: {
       id: feeId,
@@ -77,20 +73,16 @@ const createPayment = async (
     );
   }
 
-  // OnlySuccessfullyCompletedPaymentsReduceFeeBalance
   const paidPayments = await prisma.payment.aggregate({
     where: {
       feeId: fee.id,
       studentId: student.id,
       status: 'PAID',
     },
-    _sum: {
-      amount: true,
-    },
+    _sum: { amount: true },
   });
 
   const totalPaid = paidPayments._sum.amount ?? 0;
-
   const outstandingAmount = Math.max(fee.amount - totalPaid, 0);
 
   if (outstandingAmount <= 0) {
@@ -109,7 +101,6 @@ const createPayment = async (
 
   const merchantInvoiceNumber = generateMerchantInvoiceNumber();
 
-  // CreateInternalPaymentRecordBeforeContactingBKash
   const payment = await prisma.payment.create({
     data: {
       feeId: fee.id,
@@ -124,7 +115,6 @@ const createPayment = async (
   });
 
   try {
-    // CreatePaymentSessionAtBKash
     const bkashPayment = await bkashUtils.createPayment({
       mode: '0011',
       payerReference: student.studentEmail,
@@ -135,11 +125,8 @@ const createPayment = async (
       merchantInvoiceNumber,
     });
 
-    // SaveBKashPaymentIDAndGatewayResponseLocally
     const updatedPayment = await prisma.payment.update({
-      where: {
-        id: payment.id,
-      },
+      where: { id: payment.id },
       data: {
         bkashPaymentId: bkashPayment.paymentID,
         gatewayResponse: {
@@ -158,22 +145,15 @@ const createPayment = async (
       paymentUrl: bkashPayment.bkashURL,
     };
   } catch (error) {
-    // KeepFailedGatewayAttemptInDatabase
     await prisma.payment.update({
-      where: {
-        id: payment.id,
-      },
+      where: { id: payment.id },
       data: {
         status: 'FAILED',
         failedAt: new Date(),
         gatewayResponse:
           error instanceof Error
-            ? {
-                message: error.message,
-              }
-            : {
-                message: 'Unknown bKash error!',
-              },
+            ? { message: error.message }
+            : { message: 'Unknown bKash error!' },
       },
     });
 
@@ -185,11 +165,8 @@ const createPayment = async (
 const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
   const { paymentID, status } = payload;
 
-  // FindLocalPayment
   const payment = await prisma.payment.findUnique({
-    where: {
-      bkashPaymentId: paymentID,
-    },
+    where: { bkashPaymentId: paymentID },
     select: {
       id: true,
       feeId: true,
@@ -201,7 +178,6 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
       bkashPaymentId: true,
       invoiceNumber: true,
       invoiceUrl: true,
-
       student: {
         select: {
           studentId: true,
@@ -214,7 +190,6 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
           },
         },
       },
-
       fee: {
         select: {
           title: true,
@@ -228,7 +203,6 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
     throw new AppError(httpStatus.NOT_FOUND, 'Payment record not found!');
   }
 
-  // NoDuplicatePayment
   if (payment.status === 'PAID') {
     return {
       paymentId: payment.id,
@@ -246,11 +220,9 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
     );
   }
 
-  // SuccessfulCallback
   if (status === 'success') {
     const bkashPayment = await bkashUtils.executePayment(paymentID);
 
-    // VerifyBKashPaymentID
     if (bkashPayment.paymentID !== paymentID) {
       throw new AppError(
         httpStatus.BAD_GATEWAY,
@@ -258,7 +230,6 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
       );
     }
 
-    // VerifyMerchantInvoiceNumber
     if (
       bkashPayment.merchantInvoiceNumber &&
       bkashPayment.merchantInvoiceNumber !== payment.merchantInvoiceNumber
@@ -269,7 +240,6 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
       );
     }
 
-    // VerifyPaymentAmount
     if (
       bkashPayment.amount &&
       Number(bkashPayment.amount).toFixed(2) !== payment.amount.toFixed(2)
@@ -280,7 +250,6 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
       );
     }
 
-    // VerifyPaymentCurrency
     if (bkashPayment.currency && bkashPayment.currency !== payment.currency) {
       throw new AppError(
         httpStatus.BAD_GATEWAY,
@@ -288,7 +257,6 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
       );
     }
 
-    // BKashPaymentCompletedThenPaymentStatusPAID
     if (bkashPayment.transactionStatus === 'Completed') {
       if (!bkashPayment.trxID) {
         throw new AppError(
@@ -297,11 +265,8 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
         );
       }
 
-      // BKashTransactionID
       const bkashTrxId = bkashPayment.trxID;
       const paidAt = new Date();
-
-      // GenerateInvoiceBeforeFinalizingPayment
       const invoiceNumber = InvoiceService.generateInvoiceNumber();
 
       let uploadedInvoice: {
@@ -366,9 +331,7 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
 
           if (paymentUpdate.count === 0) {
             return tx.payment.findUnique({
-              where: {
-                id: payment.id,
-              },
+              where: { id: payment.id },
             });
           }
 
@@ -378,17 +341,13 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
               studentId: payment.studentId,
               status: 'PAID',
             },
-            _sum: {
-              amount: true,
-            },
+            _sum: { amount: true },
           });
 
           const totalPaid = paidPayments._sum.amount ?? 0;
 
           const fee = await tx.fee.findUnique({
-            where: {
-              id: payment.feeId,
-            },
+            where: { id: payment.feeId },
             select: {
               id: true,
               amount: true,
@@ -403,26 +362,18 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
             );
           }
 
-          const newFeeStatus =
-            totalPaid >= fee.amount ? 'PAID' : 'PARTIALLY_PAID';
-
           await tx.fee.update({
-            where: {
-              id: fee.id,
-            },
+            where: { id: fee.id },
             data: {
-              status: newFeeStatus,
+              status: totalPaid >= fee.amount ? 'PAID' : 'PARTIALLY_PAID',
             },
           });
 
           return tx.payment.findUnique({
-            where: {
-              id: payment.id,
-            },
+            where: { id: payment.id },
           });
         });
 
-        // SendInvoiceEmailAfterSuccessfulPayment
         let emailSent = false;
 
         try {
@@ -440,7 +391,6 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
 
           emailSent = true;
         } catch (emailError) {
-          // EmailFailureMustNotChangeSuccessfulPayment
           console.error(
             'Payment was successful, but invoice email could not be sent:',
             emailError,
@@ -449,16 +399,16 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
 
         return {
           payment: finalizedPayment,
+          paymentId: payment.id,
           status: 'PAID',
           invoiceNumber,
           invoiceUrl: uploadedInvoice.secureUrl,
           emailSent,
           message: emailSent
-            ? 'Payment verified, completed, invoice generated, and invoice email sent successfully!'
+            ? 'Payment verified, completed, invoice generated and invoice email sent successfully!'
             : 'Payment verified and completed successfully, but the invoice email could not be sent.',
         };
       } catch (error) {
-        // DBTransactionFailedAfterInvoiceUploaded
         try {
           await InvoiceService.deleteInvoiceFromCloudinary(
             uploadedInvoice.publicId,
@@ -480,15 +430,9 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
     const gatewayResponse = {
       paymentID: bkashPayment.paymentID,
       transactionStatus: bkashPayment.transactionStatus,
-      ...(bkashPayment.trxID && {
-        trxID: bkashPayment.trxID,
-      }),
-      ...(bkashPayment.amount && {
-        amount: bkashPayment.amount,
-      }),
-      ...(bkashPayment.currency && {
-        currency: bkashPayment.currency,
-      }),
+      ...(bkashPayment.trxID && { trxID: bkashPayment.trxID }),
+      ...(bkashPayment.amount && { amount: bkashPayment.amount }),
+      ...(bkashPayment.currency && { currency: bkashPayment.currency }),
       ...(bkashPayment.merchantInvoiceNumber && {
         merchantInvoiceNumber: bkashPayment.merchantInvoiceNumber,
       }),
@@ -533,7 +477,7 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
           status: 'CANCELLED',
           cancelledAt: new Date(),
           gatewayResponse: {
-            paymentID: paymentID,
+            paymentID,
             callbackStatus: status,
             message: 'bKash callback reported cancellation.',
           },
@@ -542,7 +486,7 @@ const handlePaymentCallback = async (payload: IPaymentCallbackPayload) => {
           status: 'FAILED',
           failedAt: new Date(),
           gatewayResponse: {
-            paymentID: paymentID,
+            paymentID,
             callbackStatus: status,
             message: 'bKash callback reported payment failure.',
           },
@@ -577,12 +521,46 @@ const getMyPayments = async (userId: string) => {
     throw new AppError(httpStatus.NOT_FOUND, 'Student profile not found!');
   }
 
-  const payments = await prisma.payment.findMany({
-    where: {
-      studentId: student.id,
+  return prisma.payment.findMany({
+    where: { studentId: student.id },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      feeId: true,
+      amount: true,
+      currency: true,
+      paymentMethod: true,
+      status: true,
+      bkashTrxId: true,
+      merchantInvoiceNumber: true,
+      invoiceNumber: true,
+      invoiceUrl: true,
+      paidAt: true,
+      failedAt: true,
+      cancelledAt: true,
+      createdAt: true,
+      fee: {
+        select: { title: true },
+      },
     },
-    orderBy: {
-      createdAt: 'desc',
+  });
+};
+
+// GetSinglePayment
+const getSinglePayment = async (userId: string, paymentId: string) => {
+  const student = await prisma.studentProfile.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+
+  if (!student) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Student profile not found!');
+  }
+
+  const payment = await prisma.payment.findFirst({
+    where: {
+      id: paymentId,
+      studentId: student.id,
     },
     select: {
       id: true,
@@ -600,18 +578,21 @@ const getMyPayments = async (userId: string) => {
       cancelledAt: true,
       createdAt: true,
       fee: {
-        select: {
-          title: true,
-        },
+        select: { title: true },
       },
     },
   });
 
-  return payments;
+  if (!payment) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Payment not found!');
+  }
+
+  return payment;
 };
 
 export const PaymentService = {
   createPayment,
   handlePaymentCallback,
   getMyPayments,
+  getSinglePayment,
 };

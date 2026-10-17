@@ -7,6 +7,7 @@ import type {
 import { PaymentService } from './payment.service.ts';
 import config from '../../config/index.ts';
 
+// CreatePayment
 const createPayment = async (req: Request, res: Response) => {
   const payload = req.body as CreatePaymentInput;
 
@@ -19,6 +20,7 @@ const createPayment = async (req: Request, res: Response) => {
   });
 };
 
+// HandlePaymentCallback
 const handlePaymentCallback = async (req: Request, res: Response) => {
   const payload = res.locals.query as PaymentCallbackInput;
 
@@ -37,6 +39,11 @@ const handlePaymentCallback = async (req: Request, res: Response) => {
     );
 
     resultUrl.searchParams.set('status', result.status);
+
+    // PassDatabasePaymentIDToFrontend
+    if ('paymentId' in result && result.paymentId) {
+      resultUrl.searchParams.set('paymentId', result.paymentId);
+    }
 
     if ('invoiceNumber' in result && result.invoiceNumber) {
       resultUrl.searchParams.set('invoiceNumber', result.invoiceNumber);
@@ -86,8 +93,23 @@ const getMyPayments = async (req: Request, res: Response) => {
   });
 };
 
+// GetSinglePayment
+const getSinglePayment = async (req: Request, res: Response) => {
+  const payment = await PaymentService.getSinglePayment(
+    req.user!.userId,
+    req.params.paymentId as string,
+  );
+
+  res.status(httpStatus.OK).json({
+    success: true,
+    message: 'Payment details retrieved successfully!',
+    data: payment,
+  });
+};
+
 export const PaymentController = {
   createPayment,
   handlePaymentCallback,
   getMyPayments,
+  getSinglePayment,
 };

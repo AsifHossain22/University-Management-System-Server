@@ -32,4 +32,11 @@ router.get(
   PaymentController.getMyPayments,
 );
 
+// GetPaymentById
+router.get(
+  '/:paymentId',
+  auth(UserRole.STUDENT),
+  PaymentController.getSinglePayment,
+);
+
 export const PaymentRoutes = router;

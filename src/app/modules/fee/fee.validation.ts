@@ -8,6 +8,7 @@ const feeStatusSchema = z.enum([
   'CANCELLED',
 ]);
 
+// CreateFee
 export const createFeeSchema = z.object({
   studentId: z.uuid('Student ID must be a valid UUID'),
 
@@ -30,6 +31,7 @@ export const createFeeSchema = z.object({
   }),
 });
 
+// UpdateFee
 export const updateFeeSchema = z
   .object({
     title: z
@@ -52,15 +54,12 @@ export const updateFeeSchema = z
         error: 'Due date must be a valid date',
       })
       .optional(),
-
-    status: feeStatusSchema.optional(),
-
-    isActive: z.boolean().optional(),
   })
   .refine(data => Object.keys(data).length > 0, {
     message: 'At least one fee field is required to update the fee',
   });
 
+// FeeQuery
 export const feeQuerySchema = z.object({
   searchTerm: z.string().trim().optional(),
 
@@ -79,10 +78,12 @@ export const feeQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 
+// FeeIdParam
 export const feeIdParamSchema = z.object({
   feeId: z.uuid('Fee ID must be a valid UUID'),
 });
 
+// Types
 export type CreateFeeInput = z.infer<typeof createFeeSchema>;
 export type UpdateFeeInput = z.infer<typeof updateFeeSchema>;
 export type FeeQueryInput = z.infer<typeof feeQuerySchema>;
