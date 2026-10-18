@@ -26,3 +26,12 @@ export const updateStudentProfileSchema = z
 export type UpdateStudentProfileInput = z.infer<
   typeof updateStudentProfileSchema
 >;
+
+export const studentQuerySchema = z.object({
+  searchTerm: z.string().trim().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(10),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+});
+
+export type StudentQueryInput = z.infer<typeof studentQuerySchema>;

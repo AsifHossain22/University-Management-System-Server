@@ -2,7 +2,10 @@ import httpStatus from 'http-status';
 import { cloudinary } from '../../../lib/cloudinary.ts';
 import { prisma } from '../../../lib/prisma.ts';
 import { AppError } from '../../utils/AppError.ts';
-import type { UpdateStudentProfileInput } from './student.validation.ts';
+import type {
+  StudentQueryInput,
+  UpdateStudentProfileInput,
+} from './student.validation.ts';
 
 // GetMyProfile
 const getMyProfile = async (userId: string) => {
@@ -189,30 +192,95 @@ const updateProfilePhoto = async (
 };
 
 // GetAllStudents
-const getAllStudents = async () => {
-  return prisma.studentProfile.findMany({
-    where: {
-      user: {
-        deletedAt: null,
-        isActive: true,
-      },
+
+const getAllStudents = async (query: StudentQueryInput) => {
+  const { searchTerm, page = 1, limit = 10, sortOrder = 'desc' } = query;
+
+  const skip = (page - 1) * limit;
+
+  const where = {
+    user: {
+      deletedAt: null,
+      isActive: true,
+      ...(searchTerm
+        ? {
+            OR: [
+              {
+                firstName: {
+                  contains: searchTerm,
+                  mode: 'insensitive' as const,
+                },
+              },
+              {
+                lastName: {
+                  contains: searchTerm,
+                  mode: 'insensitive' as const,
+                },
+              },
+              {
+                email: {
+                  contains: searchTerm,
+                  mode: 'insensitive' as const,
+                },
+              },
+            ],
+          }
+        : {}),
     },
-    select: {
-      id: true, // StudentUUID — RequiredForFeeCreation
-      studentId: true, // DisplayedStudentNumber
-      studentEmail: true,
-      user: {
-        select: {
-          firstName: true,
-          lastName: true,
-          email: true,
+    ...(searchTerm
+      ? {
+          OR: [
+            {
+              studentId: {
+                contains: searchTerm,
+                mode: 'insensitive' as const,
+              },
+            },
+            {
+              studentEmail: {
+                contains: searchTerm,
+                mode: 'insensitive' as const,
+              },
+            },
+          ],
+        }
+      : {}),
+  };
+
+  const [students, total] = await prisma.$transaction([
+    prisma.studentProfile.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: {
+        createdAt: sortOrder,
+      },
+      select: {
+        id: true,
+        studentId: true,
+        studentEmail: true,
+        createdAt: true,
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
         },
       },
+    }),
+    prisma.studentProfile.count({ where }),
+  ]);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
     },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
+    data: students,
+  };
 };
 
 export const StudentService = {

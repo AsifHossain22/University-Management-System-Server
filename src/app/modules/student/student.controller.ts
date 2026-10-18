@@ -69,12 +69,13 @@ const updateProfilePhoto = async (req: Request, res: Response) => {
 
 // GetAllStudents
 const getAllStudents = async (req: Request, res: Response) => {
-  const result = await StudentService.getAllStudents();
+  const result = await StudentService.getAllStudents(res.locals.query);
 
   res.status(httpStatus.OK).json({
     success: true,
     message: 'Students retrieved successfully!',
-    data: result,
+    meta: result.meta,
+    data: result.data,
   });
 };
 
