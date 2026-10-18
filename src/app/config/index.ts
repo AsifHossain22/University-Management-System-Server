@@ -12,6 +12,8 @@ export default {
 
   database_url: process.env.DATABASE_URL,
 
+  gemini_api_key: process.env.GEMINI_API_KEY!,
+
   jwt_access_secret: process.env.JWT_ACCESS_SECRET!,
   jwt_access_expires_in: process.env
     .JWT_ACCESS_EXPIRES_IN! as SignOptions['expiresIn'],
