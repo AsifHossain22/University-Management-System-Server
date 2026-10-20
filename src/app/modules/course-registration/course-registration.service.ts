@@ -152,8 +152,10 @@ const registerCourse = async (
             },
           });
 
+          // CheckCapacityForNewAndReactivatedRegistrations
           if (
-            !existingRegistration &&
+            (!existingRegistration ||
+              existingRegistration.status === 'DROPPED') &&
             registeredStudentCount >= section.capacity
           ) {
             throw new AppError(
