@@ -28,6 +28,7 @@ import { PaymentRoutes } from './app/modules/payment/payment.route.ts';
 import { AuditLogRoutes } from './app/modules/audit-log/audit-log.route.ts';
 import { CourseGradeRoutes } from './app/modules/course-grade/course-grade.route.ts';
 import { AIRoutes } from './app/modules/ai/ai.route.ts';
+import { ContactRoutes } from './app/modules/contact/contact.route.ts';
 
 const app: Application = express();
 
@@ -103,6 +104,9 @@ app.use('/api/v1/course-grades', CourseGradeRoutes);
 
 // AIRoutes
 app.use('/api/v1/ai', AIRoutes);
+
+// ContactRoutes
+app.use('/api/v1/contact', ContactRoutes);
 
 // WelcomeRoute
 app.get('/', (req: Request, res: Response) => {
